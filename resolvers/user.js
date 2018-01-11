@@ -5,6 +5,13 @@ import { User } from "../connectors"
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
 
+import { Op } from "sequelize"
+
+import { createError } from "apollo-errors"
+
+const getHash = password => bcrypt.hashSync(password, 10)
+const getToken = payload => jwt.sign(payload, "secretText", { expiresIn: 1440 })
+
 const createUser = baseResolver.createResolver(
   async (
     root,
@@ -12,7 +19,7 @@ const createUser = baseResolver.createResolver(
     context,
     error
   ) => {
-    let hash = bcrypt.hashSync(password, 10)
+    let hash = getHash(password)
 
     let user = await User.create({
       name,
@@ -27,9 +34,7 @@ const createUser = baseResolver.createResolver(
       userId: user.id,
     }
 
-    let token = jwt.sign(payload, "secretText", {
-      expiresIn: 1440, // 24 hours
-    })
+    let token = getToken(payload)
 
     return {
       id: user.id,
@@ -38,15 +43,39 @@ const createUser = baseResolver.createResolver(
   }
 )
 
+const WrongPasswordError = createError("WrongPassword", {
+  message: "Your password is incorrect, try again",
+})
+
 const loginUser = baseResolver.createResolver(
-  async (root, args, contex, error) => {
-    return user.id
+  async (root, { email, password }, contex, error) => {
+    const user = await User.find({ where: { email: { [Op.like]: email } } })
+    const correctPassword = await bcrypt.compare(password, user.password)
+
+    if (!correctPassword) {
+      return new WrongPasswordError()
+    }
+
+    if (user !== undefined) {
+      const payload = {
+        userId: user.id,
+      }
+
+      let token = getToken(payload)
+
+      return {
+        id: user.id,
+        token,
+      }
+    } else {
+      // ERROR
+    }
   }
 )
 
 export default {
   Mutation: {
     createUser,
-    // loginUser,
+    loginUser,
   },
 }

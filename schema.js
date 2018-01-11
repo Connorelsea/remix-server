@@ -22,6 +22,11 @@ type Mutation {
     phone_number: String
   ): User
 
+  loginUser(
+    email: String,
+    password: String
+  ): User
+
   createGroup(
     name: String,
     username: String,
