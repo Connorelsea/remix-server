@@ -3,13 +3,15 @@ import koaRouter from "koa-router" // koa-router@next
 import koaBody from "koa-bodyparser" // koa-bodyparser@next
 import { graphqlKoa, graphiqlKoa } from "apollo-server-koa"
 
+import schema from "./schema"
+
 const app = new koa()
 const router = new koaRouter()
 const PORT = 3000
 
 // koaBody is needed just for POST.
-router.post("/graphql", koaBody(), graphqlKoa({ schema: myGraphQLSchema }))
-router.get("/graphql", graphqlKoa({ schema: myGraphQLSchema }))
+router.post("/graphql", koaBody(), graphqlKoa({ schema }))
+router.get("/graphql", graphqlKoa({ schema }))
 
 router.get("/graphiql", graphiqlKoa({ endpointURL: "/graphql" }))
 
