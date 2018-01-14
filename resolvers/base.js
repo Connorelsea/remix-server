@@ -7,7 +7,9 @@ const UnknownError = createError("UnknownError", {
 
 export const baseResolver = createResolver(
   //incoming requests will pass through this resolver like a no-op
-  null,
+  (root, props) => {
+    console.log("BASE", props)
+  },
 
   /*
     Only mask outgoing errors that aren't already apollo-errors,

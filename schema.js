@@ -3,13 +3,13 @@ import { makeExecutableSchema, addMockFunctionsToSchema } from "graphql-tools"
 import resolvers from "./resolvers"
 
 const typeDefs = `
-type Query {
-  testString: String
-}
-
 type User {
   id: String,
-  token: String,
+  token: String
+}
+
+type Query {
+  friends: [User]
 }
 
 type Mutation {
@@ -22,14 +22,19 @@ type Mutation {
     phone_number: String
   ): User
 
-  loginUser(
-    email: String,
-    password: String
+  loginUserWithEmail(
+    email: String!,
+    password: String!
+  ): User
+
+  loginUserWithPhone(
+    phone_number: String!,
+    password: String!
   ): User
 
   createGroup(
     name: String,
-    username: String,
+    username: String
   ): String
 }
 `

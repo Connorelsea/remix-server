@@ -30,52 +30,61 @@ const createUser = baseResolver.createResolver(
       phone_number,
     })
 
-    const payload = {
-      userId: user.id,
-    }
-
-    let token = getToken(payload)
-
     return {
       id: user.id,
-      token,
+      token: getToken({ userId: user.id }),
     }
   }
 )
+
+const UserDoesntExistError = createError("UserDoesntExist", {
+  message: "A user with this email address does not exist",
+})
 
 const WrongPasswordError = createError("WrongPassword", {
   message: "Your password is incorrect, try again",
 })
 
-const loginUser = baseResolver.createResolver(
-  async (root, { email, password }, contex, error) => {
+const loginUserWithEmail = baseResolver.createResolver(
+  async (root, { email, password }, context, error) => {
     const user = await User.find({ where: { email: { [Op.like]: email } } })
-    const correctPassword = await bcrypt.compare(password, user.password)
+    if (!user) return new UserDoesntExistError()
+    return loginUser(user, password)
+  }
+)
 
-    if (!correctPassword) {
-      return new WrongPasswordError()
-    }
+const loginUserWithPhone = baseResolver.createResolver(
+  async (root, { phone_number, password }, context, error) => {
+    const user = await User.find({
+      where: { phone_number: { [Op.like]: phone_number } },
+    })
+    if (!user) return new UserDoesntExistError()
+    return loginUser(user, password)
+  }
+)
 
-    if (user !== undefined) {
-      const payload = {
-        userId: user.id,
-      }
+const loginUser = async (user, password) => {
+  const correctPassword = await bcrypt.compare(password, user.password)
+  if (!correctPassword) return new WrongPasswordError()
+  return {
+    id: user.id,
+    token: getToken({ userId: user.id }),
+  }
+}
 
-      let token = getToken(payload)
-
-      return {
-        id: user.id,
-        token,
-      }
-    } else {
-      // ERROR
-    }
+const friends = baseResolver.createResolver(
+  async (root, args, { state: { user } }, error) => {
+    return {}
   }
 )
 
 export default {
   Mutation: {
     createUser,
-    loginUser,
+    loginUserWithEmail,
+    loginUserWithPhone,
+  },
+  Query: {
+    // friends,
   },
 }
