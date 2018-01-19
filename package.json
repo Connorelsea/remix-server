@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon index.js --exec babel-node --presets es2015,stage-2",
+    "start": "nodemon --inspect index.js --exec babel-node --presets es2015,stage-2",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -22,6 +22,8 @@
     "jsonwebtoken": "^8.1.0",
     "koa": "^2.4.1",
     "koa-bodyparser": "^3.2.0",
+    "koa-logger": "^3.1.0",
+    "koa-respond": "^1.0.1",
     "koa-router": "^7.1.1",
     "lodash": "^4.17.4",
     "nodemon": "^1.14.10",

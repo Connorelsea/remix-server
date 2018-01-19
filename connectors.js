@@ -1,8 +1,15 @@
 import Sequelize from "sequelize"
+import bcrypt from "bcrypt"
 
-const db = new Sequelize("remix", "", null, {
-  dialect: "postgres",
-})
+const local = false
+
+const db = local
+  ? new Sequelize("remix", "", null, {
+      dialect: "postgres",
+    })
+  : new Sequelize(process.env.DATABASE_URL, {
+      dialect: "postgres",
+    })
 
 export const User = db.define("user", {
   name: Sequelize.STRING,
@@ -13,13 +20,8 @@ export const User = db.define("user", {
   phone_number: Sequelize.STRING,
 })
 
-export const Login = db.define("login", {
-  device: Sequelize.STRING,
-})
-
-User.hasMany(Login)
-
 const Group = db.define("group", {
+  iconUrl: Sequelize.STRING,
   name: Sequelize.STRING,
   description: Sequelize.TEXT,
 })
@@ -50,21 +52,45 @@ const Content = db.define("content", {
   data: Sequelize.JSON,
 })
 
-const FriendRequest = db.define("friend_request", {
+export const FriendRequest = db.define("friend_request", {
   message: Sequelize.TEXT,
 })
 
-const GroupRequest = db.define("group_request", {
+export const GroupRequest = db.define("group_request", {
   message: Sequelize.TEXT,
 })
 
-const GroupInvitation = db.define("group_invitation", {
+export const GroupInvitation = db.define("group_invitation", {
   message: Sequelize.TEXT,
 })
 
 // Associations
 
-User.belongsToMany(Group, { through: "UserGroupMembership" })
+User.belongsToMany(User, { as: "Friends", through: "UserFriends" })
+User.belongsToMany(Group, { through: "UserGroups" })
+Group.belongsToMany(User, { through: "UserGroups" })
+
+// When a user wants to message another user directly,
+// they send a friend request. Once the friend request
+// is accepted, the two users can private message.
+
+FriendRequest.belongsTo(User, { as: "fromUser" })
+FriendRequest.belongsTo(User, { as: "toUser" })
+
+// When a user wants to join a group, they send the group
+// a request to join. Once an admin of the group accepts
+// the request, the user requesting can partake in group
+// chats.
+
+GroupRequest.belongsTo(User, { as: "fromUser" })
+GroupRequest.belongsTo(Group, { as: "toGroup" })
+
+// When a member of a group wants to invite another user,
+// the group member will send that user a group invitation.
+
+GroupInvitation.belongsTo(User, { as: "fromUser" })
+GroupInvitation.belongsTo(Group, { as: "forGroup" })
+GroupInvitation.belongsTo(User, { as: "toUser" })
 
 // // A group is a collection of users and can be formed
 // // for any purpose. Examples include (but of course aren't
@@ -126,4 +152,22 @@ User.belongsToMany(Group, { through: "UserGroupMembership" })
 
 // console.log("Starting SYNC")
 
-db.sync({ force: true }).then(val => console.log("Done syncing"))
+db.sync({ force: true }).then(val => {
+  console.log("Done syncing")
+  User.create({
+    name: "Connor Elsea",
+    username: "connor",
+    description: "testing bio in connectors",
+    password: bcrypt.hashSync("password", 10),
+    email: "connorelsea@gmail.com",
+    phone_number: "2258038302",
+  })
+  User.create({
+    name: "Corn Cob",
+    username: "connor",
+    description: "a corn on the net",
+    password: bcrypt.hashSync("password", 10),
+    email: "connorelsea@gmail.com",
+    phone_number: "2258038302",
+  })
+})

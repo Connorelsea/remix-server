@@ -3,23 +3,45 @@ import { makeExecutableSchema, addMockFunctionsToSchema } from "graphql-tools"
 import resolvers from "./resolvers"
 
 const typeDefs = `
+
+type FriendRequest {
+  id: ID!
+  fromUser: User!,
+  toUser: User!,
+  message: String,
+  createdAt: String,
+}
+
 type User {
-  id: String,
+  id: ID!
   token: String
+  name: String
+  username: String
+  description: String
+  friends: [User]
+  groups: [Group]
+  friendRequests: [FriendRequest]
+}
+
+type Group {
+  id: ID!
 }
 
 type Query {
-  friends: [User]
+  User(id: ID!): User
+  users(
+    phrase: String!
+  ): [User]
 }
 
 type Mutation {
   createUser(
-    name: String,
-    username: String,
-    password: String,
-    description: String,
     email: String,
     phone_number: String
+    username: String,
+    password: String,
+    name: String,
+    description: String,
   ): User
 
   loginUserWithEmail(
@@ -35,6 +57,25 @@ type Mutation {
   createGroup(
     name: String,
     username: String
+  ): String
+
+  createFriendRequest(
+    message: String,
+    fromUserId: ID!,
+    toUserId: ID!,
+  ): String
+
+  createGroupRequest(
+    message: String!,
+    fromUserId: ID!,
+    toUserId: ID!,
+  ): String
+
+  createGroupInvitation(
+    message: String!,
+    fromUserId: ID!,
+    toUserId: ID!,
+    forGroupId: ID!
   ): String
 }
 `

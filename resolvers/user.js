@@ -1,6 +1,6 @@
 import { isAuthenticatedResolver } from "./access"
 import { baseResolver } from "./base"
-import { User } from "../connectors"
+import { User, FriendRequest } from "../connectors"
 
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
@@ -47,7 +47,9 @@ const WrongPasswordError = createError("WrongPassword", {
 
 const loginUserWithEmail = baseResolver.createResolver(
   async (root, { email, password }, context, error) => {
-    const user = await User.find({ where: { email: { [Op.like]: email } } })
+    const user = await User.find({
+      where: { email: { [Op.like]: email.toLowerCase() } },
+    })
     if (!user) return new UserDoesntExistError()
     return loginUser(user, password)
   }
@@ -72,9 +74,93 @@ const loginUser = async (user, password) => {
   }
 }
 
-const friends = baseResolver.createResolver(
+const friends = isAuthenticatedResolver.createResolver(
   async (root, args, { state: { user } }, error) => {
-    return {}
+    // return User.getFriends()
+  }
+)
+
+const groups = isAuthenticatedResolver.createResolver(
+  async (root, args, { state: { user } }, error) => {
+    console.log(root)
+    console.log("ROOOOOTTTTT ROOT ROOT ROOT ROOT ROOT ROOT")
+    const u = await User.findOne({ where: { id: root.id } })
+
+    console.log("USER", u)
+
+    const groups = await u.getGroups()
+    console.log("FOUND GROUPS", groups)
+    return groups
+  }
+)
+
+const getUser = isAuthenticatedResolver.createResolver(
+  async (root, { id }, { state: { user } }, error) => {
+    console.log("GET USER")
+    const u = await User.findOne({ where: { id }, raw: true })
+    console.log("FOUND USER ", u)
+    return {
+      id: u.id,
+    }
+  }
+)
+
+const getFriendRequests = isAuthenticatedResolver.createResolver(
+  async (root, args, context, error) => {
+    const { id } = root
+    const requests = await FriendRequest.findAll({
+      where: { toUserId: id },
+      include: [{ model: User, as: "fromUser" }],
+    })
+    console.log("GET FRIEND REQUESTS")
+    console.log(requests)
+    return requests.map(model => ({
+      id: model.id,
+      fromUser: model.getFromUser(),
+      toUser: model.getToUser(),
+      message: model.message,
+      createdAt: model.createdAt,
+    }))
+  }
+)
+
+const searchUsers = isAuthenticatedResolver.createResolver(
+  async (root, { phrase }, context, error) => {
+    console.log(`[USER SEARCH] \"${phrase}\"`)
+    console.time("user_search")
+
+    let transformedPhrase = phrase.replace("-", "").trim()
+
+    const isNumber = !isNaN(phrase)
+
+    let foundUsers = []
+    let foundBuffer = []
+
+    if (isNumber) {
+      foundBuffer = await User.findAll({
+        where: {
+          phone_number: { [Op.like]: `%${phrase}%` },
+        },
+      })
+      foundUsers = [...foundUsers, ...foundBuffer]
+    }
+
+    foundBuffer = await User.findAll({
+      where: {
+        [Op.or]: [
+          { username: { [Op.iLike]: `%${phrase}%` } },
+          { name: { [Op.iLike]: `%${phrase}%` } },
+        ],
+      },
+      raw: true,
+    })
+    foundUsers = [...foundUsers, ...foundBuffer]
+
+    console.log("FOUND_USERS")
+    console.log(foundUsers)
+
+    console.timeEnd("user_search")
+    return foundUsers
   }
 )
 
@@ -85,6 +171,12 @@ export default {
     loginUserWithPhone,
   },
   Query: {
-    // friends,
+    users: searchUsers,
+    User: getUser,
+  },
+  User: {
+    friends,
+    groups,
+    friendRequests: getFriendRequests,
   },
 }
