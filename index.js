@@ -2,6 +2,7 @@ import koa from "koa" // koa@2
 import koaRouter from "koa-router" // koa-router@next
 import koaBody from "koa-bodyparser" // koa-bodyparser@next
 import { graphqlKoa, graphiqlKoa } from "apollo-server-koa"
+import cors from "koa2-cors"
 
 import schema from "./schema"
 
@@ -48,9 +49,10 @@ router.get("/graphql", gqlkoa)
 
 router.get("/graphiql", graphiqlKoa({ endpointURL: "/graphql" }))
 
-// app.use(logger())
-// app.use(respond())
+app.use(cors())
+app.use(logger())
+app.use(respond())
 app.use(userIdentifier())
 app.use(router.routes())
-// app.use(router.allowedMethods())
+app.use(router.allowedMethods())
 app.listen(PORT)
