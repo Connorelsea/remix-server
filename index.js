@@ -9,7 +9,7 @@ import { checkToken } from "./utils/token"
 
 const app = new koa()
 const router = new koaRouter()
-const PORT = 8080
+const PORT = process.env.PORT || 8080
 
 import respond from "koa-respond"
 
