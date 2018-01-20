@@ -2,7 +2,6 @@ import koa from "koa" // koa@2
 import koaRouter from "koa-router" // koa-router@next
 import koaBody from "koa-bodyparser" // koa-bodyparser@next
 import { graphqlKoa, graphiqlKoa } from "apollo-server-koa"
-import cors from "koa2-cors"
 
 import schema from "./schema"
 
@@ -13,6 +12,8 @@ const router = new koaRouter()
 const PORT = 8080
 
 import respond from "koa-respond"
+
+const cors = require("@koa/cors")
 
 function userIdentifier() {
   return async (ctx, next) => {
