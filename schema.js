@@ -18,6 +18,7 @@ type User {
   name: String
   username: String
   description: String
+  iconUrl: String
   friends: [User]
   groups: [Group]
   friendRequests: [FriendRequest]
@@ -25,6 +26,13 @@ type User {
 
 type Group {
   id: ID!
+  iconUrl: String
+  name: String
+  description: String
+}
+
+type Subscription {
+  newFriendRequest(toUserId: ID): FriendRequest
 }
 
 type Query {
@@ -32,6 +40,8 @@ type Query {
   users(
     phrase: String!
   ): [User]
+
+  Group(id: ID!): Group
 }
 
 type Mutation {
@@ -63,6 +73,10 @@ type Mutation {
     message: String,
     fromUserId: ID!,
     toUserId: ID!,
+  ): String
+
+  acceptFriendRequest(
+    friendRequestId: ID!,
   ): String
 
   createGroupRequest(

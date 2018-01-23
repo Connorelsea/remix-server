@@ -6,6 +6,9 @@ import { graphqlKoa, graphiqlKoa } from "apollo-server-koa"
 import schema from "./schema"
 
 import { checkToken } from "./utils/token"
+import { execute, subscribe } from "graphql"
+import { createServer } from "http"
+import { SubscriptionServer } from "subscriptions-transport-ws"
 
 const app = new koa()
 const router = new koaRouter()
@@ -13,7 +16,7 @@ const PORT = process.env.PORT || 8080
 
 import respond from "koa-respond"
 
-const cors = require("@koa/cors")
+import cors from "kcors"
 
 function userIdentifier() {
   return async (ctx, next) => {
@@ -50,10 +53,33 @@ router.get("/graphql", gqlkoa)
 
 router.get("/graphiql", graphiqlKoa({ endpointURL: "/graphql" }))
 
-app.use(cors())
+app.use(
+  cors({
+    origin: "*",
+  })
+)
 app.use(logger())
 app.use(respond())
 app.use(userIdentifier())
 app.use(router.routes())
 app.use(router.allowedMethods())
-app.listen(PORT)
+// app.listen(PORT)
+
+// Wrap the Express server
+const ws = createServer(app.callback())
+
+ws.listen(PORT, () => {
+  console.log(`GraphQL Server is now running on http://localhost:${PORT}`)
+  // Set up the WebSocket for handling GraphQL subscriptions
+  new SubscriptionServer(
+    {
+      execute,
+      subscribe,
+      schema,
+    },
+    {
+      server: ws,
+      path: "/subscriptions",
+    }
+  )
+})

@@ -1,6 +1,6 @@
 import { isAuthenticatedResolver } from "./access"
 import { baseResolver } from "./base"
-import { User, FriendRequest } from "../connectors"
+import { User, FriendRequest, MyFriendRequests } from "../connectors"
 
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
@@ -8,6 +8,7 @@ import bcrypt from "bcrypt"
 import { Op } from "sequelize"
 
 import { createError } from "apollo-errors"
+import { resolver } from "graphql-sequelize"
 
 const getHash = password => bcrypt.hashSync(password, 10)
 const getToken = payload => jwt.sign(payload, "secretText", { expiresIn: 1440 })
@@ -108,19 +109,13 @@ const getUser = isAuthenticatedResolver.createResolver(
 const getFriendRequests = isAuthenticatedResolver.createResolver(
   async (root, args, context, error) => {
     const { id } = root
+
     const requests = await FriendRequest.findAll({
       where: { toUserId: id },
-      include: [{ model: User, as: "fromUser" }],
+      include: [{ model: User, as: "fromUser" }, { model: User, as: "toUser" }],
     })
-    console.log("GET FRIEND REQUESTS")
-    console.log(requests)
-    return requests.map(model => ({
-      id: model.id,
-      fromUser: model.getFromUser(),
-      toUser: model.getToUser(),
-      message: model.message,
-      createdAt: model.createdAt,
-    }))
+
+    return requests
   }
 )
 

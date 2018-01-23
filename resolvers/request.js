@@ -1,35 +1,109 @@
 import { isAuthenticatedResolver } from "./access"
 import { baseResolver } from "./base"
-import { FriendRequest, GroupRequest, GroupInvitation } from "../connectors"
+import {
+  FriendRequest,
+  GroupRequest,
+  GroupInvitation,
+  User,
+  Group,
+} from "../connectors"
 import { Op } from "sequelize"
+import { PubSub, withFilter } from "graphql-subscriptions"
+
+const ps = new PubSub()
 
 const createFriendRequest = isAuthenticatedResolver.createResolver(
   async (root, args, context, error) => {
     const { message, fromUserId, toUserId } = args
-    const request = await FriendRequest.create({
-      message,
-      fromUserId,
-      toUserId,
+    const friendRequest = await FriendRequest.create(
+      {
+        message,
+        fromUserId,
+        toUserId,
+      },
+      {
+        include: [
+          { model: User, as: "fromUser" },
+          { model: User, as: "toUser" },
+        ],
+      }
+    )
+
+    ps.publish("newFriendRequest", {
+      newFriendRequest: friendRequest,
     })
 
-    return request.id
+    return friendRequest
   }
 )
 
-const getFriendRequests = isAuthenticatedResolver.createResolver(
+const getToUser = baseResolver.createResolver(
+  async (root, args, context, info) => {
+    return root.getToUser()
+  }
+)
+
+const getFromUser = baseResolver.createResolver(
+  async (root, args, context, info) => {
+    return root.getFromUser()
+  }
+)
+
+const acceptFriendRequest = isAuthenticatedResolver.createResolver(
   async (root, args, context, error) => {
-    const { id } = root
-    const requests = await FriendRequest.findAll({
-      where: { toUserId: id },
-      raw: true,
+    const { friendRequestId } = args
+    const { user: { id } } = context
+
+    const friendRequest = await FriendRequest.findOne({
+      where: { id: friendRequestId },
     })
-    return requests
+
+    if (friendRequest.toUserId === id) {
+      const currentUser = await User.findOne({ where: { id } })
+      const newFriend = await User.findOne({
+        where: { id: friendRequest.fromUserId },
+      })
+      currentUser.addFriend(newFriend)
+      newFriend.addFriend(currentUser)
+
+      const newGroup = await Group.create({
+        name: "friend",
+        description: `${currentUser.id}:${currentUser.name},${newFriend.id}:${
+          newFriend.name
+        }`,
+      })
+
+      newGroup.addMember(currentUser)
+      newGroup.addMember(newFriend)
+
+      friendRequest.destroy()
+
+      return friendRequestId
+    } else {
+      return -999
+      // throw erorr, not right user
+    }
   }
 )
 
 export default {
+  FriendRequest: {
+    toUser: getToUser,
+    fromUser: getFromUser,
+  },
   Mutation: {
     createFriendRequest,
+    acceptFriendRequest,
   },
   Query: {},
+  Subscription: {
+    newFriendRequest: {
+      subscribe: withFilter(
+        () => ps.asyncIterator("newFriendRequest"),
+        (payload, variables) => true
+        // TODO add real filtering here
+      ),
+      // subscribe: () => ps.asyncIterator("newFriendRequest"),
+    },
+  },
 }

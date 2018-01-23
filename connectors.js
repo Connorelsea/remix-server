@@ -1,7 +1,7 @@
 import Sequelize from "sequelize"
 import bcrypt from "bcrypt"
 
-const local = false
+const local = true
 
 const db = local
   ? new Sequelize("remix", "", null, {
@@ -12,6 +12,7 @@ const db = local
     })
 
 export const User = db.define("user", {
+  iconUrl: Sequelize.STRING,
   name: Sequelize.STRING,
   username: Sequelize.STRING,
   password: Sequelize.STRING,
@@ -20,7 +21,7 @@ export const User = db.define("user", {
   phone_number: Sequelize.STRING,
 })
 
-const Group = db.define("group", {
+export const Group = db.define("group", {
   iconUrl: Sequelize.STRING,
   name: Sequelize.STRING,
   description: Sequelize.TEXT,
@@ -31,9 +32,10 @@ const Chat = db.define("chat", {
   description: Sequelize.TEXT,
 })
 
-const Message = db.define("message", {
-  why: Sequelize.STRING,
-})
+const Message = db.define("message", {})
+
+Message.hasOne(User, { as: "Author" })
+Message.hasOne(Chat, { as: "Origin" })
 
 const ContentTypes = [
   "remix/text",
@@ -67,15 +69,15 @@ export const GroupInvitation = db.define("group_invitation", {
 // Associations
 
 User.belongsToMany(User, { as: "Friends", through: "UserFriends" })
-User.belongsToMany(Group, { through: "UserGroups" })
-Group.belongsToMany(User, { through: "UserGroups" })
+User.belongsToMany(Group, { as: "Groups", through: "UserGroups" })
+Group.belongsToMany(User, { as: "Members", through: "UserGroups" })
 
 // When a user wants to message another user directly,
 // they send a friend request. Once the friend request
 // is accepted, the two users can private message.
 
 FriendRequest.belongsTo(User, { as: "fromUser" })
-FriendRequest.belongsTo(User, { as: "toUser" })
+export const MyFriendRequests = FriendRequest.belongsTo(User, { as: "toUser" })
 
 // When a user wants to join a group, they send the group
 // a request to join. Once an admin of the group accepts
@@ -91,6 +93,12 @@ GroupRequest.belongsTo(Group, { as: "toGroup" })
 GroupInvitation.belongsTo(User, { as: "fromUser" })
 GroupInvitation.belongsTo(Group, { as: "forGroup" })
 GroupInvitation.belongsTo(User, { as: "toUser" })
+
+Group.belongsToMany(Chat, { through: "GroupChats" })
+
+Chat.belongsToMany(Message, { through: "ChatMessages" })
+
+Message.hasOne(Content)
 
 // // A group is a collection of users and can be formed
 // // for any purpose. Examples include (but of course aren't
@@ -161,6 +169,8 @@ db.sync({ force: true }).then(val => {
     password: bcrypt.hashSync("password", 10),
     email: "connorelsea@gmail.com",
     phone_number: "2258038302",
+    iconUrl:
+      "https://pbs.twimg.com/profile_images/938193159816929280/TUxW1wek_400x400.jpg",
   })
   User.create({
     name: "Corn Cob",
@@ -168,6 +178,26 @@ db.sync({ force: true }).then(val => {
     description: "a corn on the net",
     password: bcrypt.hashSync("password", 10),
     email: "connorelsea@gmail.com",
+    phone_number: "2258038302",
+    iconUrl:
+      "https://media1.britannica.com/eb-media/36/167236-004-AE764A76.jpg",
+  })
+  User.create({
+    name: "test",
+    username: "test",
+    description: "a test on the net",
+    password: bcrypt.hashSync("test", 10),
+    email: "test",
+    phone_number: "2258038302",
+  })
+
+  User.create({
+    name: "Jospeh A. Bakington",
+    username: "longusernameaswell",
+    description:
+      "This person has a very long name and a very long username and a very long description.",
+    password: bcrypt.hashSync("test", 10),
+    email: "test",
     phone_number: "2258038302",
   })
 })
