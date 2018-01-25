@@ -4,6 +4,8 @@ import resolvers from "./resolvers"
 
 const typeDefs = `
 
+scalar JSON
+
 type FriendRequest {
   id: ID!
   fromUser: User!,
@@ -39,7 +41,7 @@ type Message {
 
 type Content {
   type: String!
-  data: String!
+  data: JSON!
 }
 
 type Group {
