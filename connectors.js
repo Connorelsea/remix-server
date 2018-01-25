@@ -27,15 +27,12 @@ export const Group = db.define("group", {
   description: Sequelize.TEXT,
 })
 
-const Chat = db.define("chat", {
+export const Chat = db.define("chat", {
   name: Sequelize.STRING,
   description: Sequelize.TEXT,
 })
 
-const Message = db.define("message", {})
-
-Message.hasOne(User, { as: "Author" })
-Message.hasOne(Chat, { as: "Origin" })
+export const Message = db.define("message", {})
 
 const ContentTypes = [
   "remix/text",
@@ -49,7 +46,7 @@ const ContentTypes = [
   "remix/spotify_playlist",
 ]
 
-const Content = db.define("content", {
+export const Content = db.define("content", {
   type: Sequelize.ENUM(...ContentTypes),
   data: Sequelize.JSON,
 })
@@ -94,75 +91,14 @@ GroupInvitation.belongsTo(User, { as: "fromUser" })
 GroupInvitation.belongsTo(Group, { as: "forGroup" })
 GroupInvitation.belongsTo(User, { as: "toUser" })
 
-Group.belongsToMany(Chat, { through: "GroupChats" })
-
-Chat.belongsToMany(Message, { through: "ChatMessages" })
-
+Group.hasMany(Chat)
+Chat.hasMany(Message)
 Message.hasOne(Content)
 
-// // A group is a collection of users and can be formed
-// // for any purpose. Examples include (but of course aren't
-// // limited to), topic-based groups, groups for college courses,
-// // a group of friends, any team-based communication.
-
-// Group.hasMany(User, { as: "members" })
-// // Group.hasMany(Chat)
-// // User.hasMany(Group)
-
-// // Users can private message other users that have accepted
-// // their friend requests.
-
-// User.hasMany(User, { as: "friends" })
-// User.hasMany(Group)
-
-// // Multiple groups can participate in a single chat
-// Chat.hasMany(Group)
-
-// // Some types not yet supported. Inteded eventual support for all listed
-
-// Content.hasOne(User, { as: "creator" })
-
-// // When a user wants to send a message in a chat, a new message is created
-// // with a certain content. That content can be text, an image, etc.
-
-// // When a user X wants to forward a message from user Y to chat Z,
-// // a new message with fromUser X is created with toChat Z and content
-// // pointing to the content of message Y. The original sender of the
-// // forward can be identified by the creator field on the content of
-// // message Y.
-
-// // Message
-
-// Message.hasOne(User, { as: "fromUser" })
-// Message.hasOne(Chat, { as: "toChat" })
-// Message.hasOne(Content)
-
-// // When a user wants to message another user directly,
-// // they send a friend request. Once the friend request
-// // is accepted, the two users can private message.
-
-// FriendRequest.hasOne(User, { as: "fromUser" })
-// FriendRequest.hasOne(User, { as: "toUser" })
-
-// // When a user wants to join a group, they send the group
-// // a request to join. Once an admin of the group accepts
-// // the request, the user requesting can partake in group
-// // chats.
-
-// GroupRequest.hasOne(User, { as: "fromUser" })
-// GroupRequest.hasOne(Group, { as: "toGroup" })
-
-// // When a member of a group wants to invite another user,
-// // the group member will send that user a group invitation.
-
-// GroupInvitation.hasOne(User, { as: "fromUser" })
-// GroupInvitation.hasOne(Group, { as: "forGroup" })
-
-// console.log("Starting SYNC")
-
-db.sync({ force: true }).then(val => {
+db.sync({ force: true }).then(async val => {
   console.log("Done syncing")
-  User.create({
+
+  const testUser = await User.create({
     name: "Connor Elsea",
     username: "connor",
     description: "testing bio in connectors",
@@ -172,6 +108,53 @@ db.sync({ force: true }).then(val => {
     iconUrl:
       "https://pbs.twimg.com/profile_images/938193159816929280/TUxW1wek_400x400.jpg",
   })
+
+  const testGroup = await Group.create({
+    iconUrl: "",
+    name: "Sour Patch",
+    description: "First group",
+  })
+
+  testUser.addGroup(testGroup)
+
+  const testChat = await Chat.create({
+    name: "general",
+  })
+
+  const testRapChat = await Chat.create({
+    name: "rapchat",
+  })
+
+  testGroup.addChat(testChat)
+  testGroup.addChat(testRapChat)
+
+  const testMessage = await Message.create(
+    {
+      content: {
+        type: "remix/text",
+        data: { text: "hello" },
+      },
+    },
+    {
+      include: [Content],
+    }
+  )
+
+  const testRapMessage = await Message.create(
+    {
+      content: {
+        type: "remix/text",
+        data: { text: "i love rap" },
+      },
+    },
+    {
+      include: [Content],
+    }
+  )
+
+  testChat.addMessage(testMessage)
+  testRapChat.addMessage(testRapMessage)
+
   User.create({
     name: "Corn Cob",
     username: "connor",

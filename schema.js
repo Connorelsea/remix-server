@@ -22,6 +22,24 @@ type User {
   friends: [User]
   groups: [Group]
   friendRequests: [FriendRequest]
+  allMessages: [Message]
+}
+
+type Chat {
+  id: ID!
+  name: String!
+  messages: [Message]
+}
+
+type Message {
+  id: ID!
+  chatId: ID!
+  content: Content
+}
+
+type Content {
+  type: String!
+  data: String!
 }
 
 type Group {
@@ -29,6 +47,7 @@ type Group {
   iconUrl: String
   name: String
   description: String
+  chats: [Chat]
 }
 
 type Subscription {
@@ -42,6 +61,8 @@ type Query {
   ): [User]
 
   Group(id: ID!): Group
+
+  Chat(id: ID!): Chat
 }
 
 type Mutation {

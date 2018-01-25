@@ -1,6 +1,6 @@
 import { isAuthenticatedResolver } from "./access"
 import { baseResolver } from "./base"
-import { User, Group } from "../connectors"
+import { User, Group, Chat, Message } from "../connectors"
 import { Op } from "sequelize"
 
 const createGroup = isAuthenticatedResolver.createResolver(
@@ -19,8 +19,22 @@ const createGroup = isAuthenticatedResolver.createResolver(
 const getGroup = isAuthenticatedResolver.createResolver(
   async (root, args, context, error) => {
     const { id } = args
-    const group = await Group.findOne({ where: { id }, raw: true })
+    const group = await Group.findOne({ where: { id } })
     return group
+  }
+)
+
+const getChats = isAuthenticatedResolver.createResolver(
+  async (group, args, context, info) => {
+    return await group.getChats()
+  }
+)
+
+const getChat = isAuthenticatedResolver.createResolver(
+  async (root, args, context, error) => {
+    const { id } = args
+    const chat = await Chat.findOne({ where: { id } })
+    return chat
   }
 )
 
@@ -30,6 +44,10 @@ export default {
   },
   Query: {
     Group: getGroup,
+    Chat: getChat,
   },
-  Group: {},
+  Group: {
+    chats: getChats,
+  },
+  Chat: {},
 }

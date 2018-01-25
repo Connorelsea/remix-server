@@ -1,6 +1,12 @@
 import { isAuthenticatedResolver } from "./access"
 import { baseResolver } from "./base"
-import { User, FriendRequest, MyFriendRequests } from "../connectors"
+import {
+  User,
+  FriendRequest,
+  MyFriendRequests,
+  Message,
+  Content,
+} from "../connectors"
 
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
@@ -76,33 +82,26 @@ const loginUser = async (user, password) => {
 }
 
 const friends = isAuthenticatedResolver.createResolver(
-  async (root, args, { state: { user } }, error) => {
-    // return User.getFriends()
+  async (root, args, context, error) => {
+    const user = await User.findOne({ where: { id: root.id } })
+    const friends = await user.getFriends()
+    return friends
   }
 )
 
 const groups = isAuthenticatedResolver.createResolver(
-  async (root, args, { state: { user } }, error) => {
-    console.log(root)
-    console.log("ROOOOOTTTTT ROOT ROOT ROOT ROOT ROOT ROOT")
-    const u = await User.findOne({ where: { id: root.id } })
-
-    console.log("USER", u)
-
-    const groups = await u.getGroups()
-    console.log("FOUND GROUPS", groups)
+  async (root, args, context, error) => {
+    const user = await User.findOne({ where: { id: root.id } })
+    const groups = await user.getGroups()
     return groups
   }
 )
 
 const getUser = isAuthenticatedResolver.createResolver(
-  async (root, { id }, { state: { user } }, error) => {
-    console.log("GET USER")
-    const u = await User.findOne({ where: { id }, raw: true })
-    console.log("FOUND USER ", u)
-    return {
-      id: u.id,
-    }
+  async (root, args, context, error) => {
+    const { id } = args
+    const user = await User.findOne({ where: { id } })
+    return user
   }
 )
 
@@ -147,7 +146,6 @@ const searchUsers = isAuthenticatedResolver.createResolver(
           { name: { [Op.iLike]: `%${phrase}%` } },
         ],
       },
-      raw: true,
     })
     foundUsers = [...foundUsers, ...foundBuffer]
 
@@ -156,6 +154,37 @@ const searchUsers = isAuthenticatedResolver.createResolver(
 
     console.timeEnd("user_search")
     return foundUsers
+  }
+)
+
+const getAllMessages = isAuthenticatedResolver.createResolver(
+  async (user, args, context, info) => {
+    const userGroups = await user.getGroups()
+
+    const groupChatCollections = await Promise.all(
+      userGroups.map(async group => await group.getChats())
+    )
+
+    let chats = []
+
+    groupChatCollections.map(
+      chatCollection => (chats = chats.concat(chatCollection))
+    )
+
+    const userMessageFilters = await chats.map(chat => ({
+      chatId: chat.id,
+    }))
+
+    const messages = await Message.findAll({
+      where: {
+        [Op.or]: userMessageFilters,
+      },
+      include: [{ model: Content, as: "content" }],
+    })
+
+    console.log(messages[0].dataValues.content)
+
+    return messages
   }
 )
 
@@ -173,5 +202,6 @@ export default {
     friends,
     groups,
     friendRequests: getFriendRequests,
+    allMessages: getAllMessages,
   },
 }
