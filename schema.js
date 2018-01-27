@@ -14,6 +14,13 @@ type FriendRequest {
   createdAt: String,
 }
 
+type ReadPosition {
+  id: ID!
+  userId: ID!
+  chatId: ID!
+  messageId: ID!
+}
+
 type User {
   id: ID!
   token: String
@@ -54,6 +61,7 @@ type Group {
 
 type Subscription {
   newFriendRequest(toUserId: ID): FriendRequest
+  newMessage(forUserId: ID!): Message
 }
 
 type Query {
@@ -114,6 +122,34 @@ type Mutation {
     toUserId: ID!,
     forGroupId: ID!
   ): String
+
+  # Create a message with original content and send
+  # in a specific chat
+
+  createMessage(
+    type: String!
+    data: JSON!
+    chatId: ID!
+  ): Message
+
+  # Create a message under your authorship in toChatId that sends
+  # content of an arbitrary authorship (either yours or another users).
+  # The concept of sending a different user's content is used for
+  # quoting/replying/forwarding
+
+  createMessageWithExistingContent(
+    contentId: ID!
+    toChatId: ID!
+  ): Message
+
+  # TODO: Expose API for bulk sending
+  # Pass content ID or custom NEW content for each message in array
+
+  # Updating read position
+
+  updateReadPosition(
+    forMessageId: ID!
+  ): ReadPosition
 }
 `
 

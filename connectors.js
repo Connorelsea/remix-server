@@ -91,9 +91,19 @@ GroupInvitation.belongsTo(User, { as: "fromUser" })
 GroupInvitation.belongsTo(Group, { as: "forGroup" })
 GroupInvitation.belongsTo(User, { as: "toUser" })
 
-Group.hasMany(Chat)
-Chat.hasMany(Message)
+Group.belongsToMany(Chat, { through: "GroupChats" })
+Chat.belongsTo(Group, { through: "GroupChats" })
+Chat.belongsToMany(Message, { through: "ChatMessages" })
+Message.belongsTo(Chat, { through: "ChatMessages" })
 Message.hasOne(Content)
+
+// Read positions
+
+export const ReadPosition = db.define("read_position", {})
+
+ReadPosition.belongsTo(Chat)
+ReadPosition.belongsTo(Message)
+ReadPosition.belongsTo(User)
 
 db.sync({ force: true }).then(async val => {
   console.log("Done syncing")
@@ -128,6 +138,9 @@ db.sync({ force: true }).then(async val => {
   testGroup.addChat(testChat)
   testGroup.addChat(testRapChat)
 
+  testChat.setGroup(testGroup)
+  testRapChat.setGroup(testGroup)
+
   const testMessage = await Message.create(
     {
       content: {
@@ -153,7 +166,9 @@ db.sync({ force: true }).then(async val => {
   )
 
   testChat.addMessage(testMessage)
+  testMessage.setChat(testChat)
   testRapChat.addMessage(testRapMessage)
+  testRapMessage.setChat(testRapChat)
 
   User.create({
     name: "Corn Cob",

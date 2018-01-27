@@ -100,7 +100,7 @@ export default {
     newFriendRequest: {
       subscribe: withFilter(
         () => ps.asyncIterator("newFriendRequest"),
-        (payload, variables) => true
+        (payload, variables) => payload.toUser.id === variables.toUserId
         // TODO add real filtering here
       ),
       // subscribe: () => ps.asyncIterator("newFriendRequest"),
