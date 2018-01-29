@@ -13,6 +13,7 @@ const db = local
 
 export const User = db.define("user", {
   iconUrl: Sequelize.STRING,
+  color: Sequelize.STRING,
   name: Sequelize.STRING,
   username: Sequelize.STRING,
   password: Sequelize.STRING,
@@ -95,6 +96,7 @@ Group.belongsToMany(Chat, { through: "GroupChats" })
 Chat.belongsTo(Group, { through: "GroupChats" })
 Chat.belongsToMany(Message, { through: "ChatMessages" })
 Message.belongsTo(Chat, { through: "ChatMessages" })
+Message.belongsTo(User)
 Message.hasOne(Content)
 
 // Read positions
@@ -117,6 +119,7 @@ db.sync({ force: true }).then(async val => {
     phone_number: "2258038302",
     iconUrl:
       "https://pbs.twimg.com/profile_images/938193159816929280/TUxW1wek_400x400.jpg",
+    color: "#0096E7",
   })
 
   const testGroup = await Group.create({
@@ -153,6 +156,8 @@ db.sync({ force: true }).then(async val => {
     }
   )
 
+  testMessage.setUser(testUser)
+
   const testRapMessage = await Message.create(
     {
       content: {
@@ -164,6 +169,8 @@ db.sync({ force: true }).then(async val => {
       include: [Content],
     }
   )
+
+  testRapMessage.setUser(testUser)
 
   testChat.addMessage(testMessage)
   testMessage.setChat(testChat)
@@ -180,7 +187,8 @@ db.sync({ force: true }).then(async val => {
     iconUrl:
       "https://media1.britannica.com/eb-media/36/167236-004-AE764A76.jpg",
   })
-  User.create({
+
+  const otherUser = await User.create({
     name: "test",
     username: "test",
     description: "a test on the net",
@@ -188,6 +196,8 @@ db.sync({ force: true }).then(async val => {
     email: "test",
     phone_number: "2258038302",
   })
+
+  otherUser.addGroup(testGroup)
 
   User.create({
     name: "Jospeh A. Bakington",

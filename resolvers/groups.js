@@ -30,6 +30,12 @@ const getChats = isAuthenticatedResolver.createResolver(
   }
 )
 
+const getMembers = isAuthenticatedResolver.createResolver(
+  async (group, args, context, info) => {
+    return await group.getMembers()
+  }
+)
+
 const getChat = isAuthenticatedResolver.createResolver(
   async (root, args, context, error) => {
     const { id } = args
@@ -48,6 +54,7 @@ export default {
   },
   Group: {
     chats: getChats,
+    members: getMembers,
   },
   Chat: {},
 }

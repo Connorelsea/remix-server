@@ -8,10 +8,10 @@ scalar JSON
 
 type FriendRequest {
   id: ID!
-  fromUser: User!,
-  toUser: User!,
-  message: String,
-  createdAt: String,
+  fromUser: User!
+  toUser: User!
+  message: String
+  createdAt: String
 }
 
 type ReadPosition {
@@ -28,6 +28,7 @@ type User {
   username: String
   description: String
   iconUrl: String
+  color: String
   friends: [User]
   groups: [Group]
   friendRequests: [FriendRequest]
@@ -43,6 +44,7 @@ type Chat {
 type Message {
   id: ID!
   chatId: ID!
+  userId: ID!
   content: Content
 }
 
@@ -57,6 +59,7 @@ type Group {
   name: String
   description: String
   chats: [Chat]
+  members: [User]
 }
 
 type Subscription {
@@ -69,6 +72,7 @@ type Query {
   users(
     phrase: String!
   ): [User]
+  relevantUsers: [User]
 
   Group(id: ID!): Group
 
@@ -83,6 +87,7 @@ type Mutation {
     password: String,
     name: String,
     description: String,
+    color: String,
   ): User
 
   loginUserWithEmail(

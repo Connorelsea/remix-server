@@ -22,7 +22,7 @@ const getToken = payload => jwt.sign(payload, "secretText", { expiresIn: 1440 })
 const createUser = baseResolver.createResolver(
   async (
     root,
-    { name, username, password, description, email, phone_number },
+    { name, username, password, description, email, phone_number, color },
     context,
     error
   ) => {
@@ -35,6 +35,7 @@ const createUser = baseResolver.createResolver(
       description,
       email,
       phone_number,
+      color,
     })
 
     return {
@@ -94,6 +95,27 @@ const groups = isAuthenticatedResolver.createResolver(
     const user = await User.findOne({ where: { id: root.id } })
     const groups = await user.getGroups()
     return groups
+  }
+)
+
+const relevantUsers = isAuthenticatedResolver.createResolver(
+  async (root, args, context, error) => {
+    const { user: { id } } = context
+    const user = await User.findOne({ where: { id } })
+    let friends = await user.getFriends()
+    let groups = await user.getGroups()
+    let users = undefined
+    if (groups && groups.length > 0)
+      users = await Promise.all(groups.map(async g => await g.getMembers()))
+    let foundUsers
+    if (users && users.length > 0)
+      foundUsers = users.reduce(function(prev, curr) {
+        return prev.concat(curr)
+      })
+
+    if (!foundUsers) foundUsers = []
+    if (!friends) friends = []
+    return [...friends, ...foundUsers]
   }
 )
 
@@ -160,6 +182,7 @@ const searchUsers = isAuthenticatedResolver.createResolver(
 const getAllMessages = isAuthenticatedResolver.createResolver(
   async (user, args, context, info) => {
     const userGroups = await user.getGroups()
+    if (userGroups === undefined) return []
 
     const groupChatCollections = await Promise.all(
       userGroups.map(async group => await group.getChats())
@@ -182,8 +205,6 @@ const getAllMessages = isAuthenticatedResolver.createResolver(
       include: [{ model: Content, as: "content" }],
     })
 
-    console.log(messages[0].dataValues.content)
-
     return messages
   }
 )
@@ -196,6 +217,7 @@ export default {
   },
   Query: {
     users: searchUsers,
+    relevantUsers,
     User: getUser,
   },
   User: {

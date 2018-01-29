@@ -15,6 +15,7 @@ const ps = new PubSub()
 
 const createMessage = isAuthenticatedResolver.createResolver(
   async (root, args, context, error) => {
+    const { user: { id } } = context
     const { type, data, chatId } = args
 
     console.log(args)
@@ -27,6 +28,7 @@ const createMessage = isAuthenticatedResolver.createResolver(
           type,
           data,
         },
+        userId: id,
       },
       {
         include: [Content],
@@ -71,7 +73,7 @@ const updateReadPosition = isAuthenticatedResolver.createResolver(
     })
 
     if (existingReadPosition) {
-      existingReadPosition.delete()
+      existingReadPosition.destroy()
     }
 
     const pos = await ReadPosition.create({
