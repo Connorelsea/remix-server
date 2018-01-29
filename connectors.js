@@ -26,6 +26,7 @@ export const Group = db.define("group", {
   iconUrl: Sequelize.STRING,
   name: Sequelize.STRING,
   description: Sequelize.TEXT,
+  isDirectMessage: Sequelize.BOOLEAN,
 })
 
 export const Chat = db.define("chat", {

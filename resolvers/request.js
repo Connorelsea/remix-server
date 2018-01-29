@@ -69,9 +69,8 @@ const acceptFriendRequest = isAuthenticatedResolver.createResolver(
 
       const newGroup = await Group.create({
         name: "friend",
-        description: `${currentUser.id}:${currentUser.name},${newFriend.id}:${
-          newFriend.name
-        }`,
+        description: `A great friendship`,
+        isDirectMessage: true,
       })
 
       newGroup.addMember(currentUser)

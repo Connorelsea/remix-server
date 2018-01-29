@@ -58,6 +58,7 @@ type Group {
   iconUrl: String
   name: String
   description: String
+  isDirectMessage: Boolean
   chats: [Chat]
   members: [User]
 }
