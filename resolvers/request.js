@@ -82,6 +82,7 @@ const acceptFriendRequest = isAuthenticatedResolver.createResolver(
       })
 
       newGroup.addChat(newChat)
+      newChat.setGroup(newGroup)
 
       friendRequest.destroy()
 
@@ -105,17 +106,20 @@ export default {
   Query: {},
   Subscription: {
     newFriendRequest: {
-      // subscribe: withFilter(
-      //   () => ps.asyncIterator("newFriendRequest"),
-      //   (payload, variables) => payload.toUser.id === variables.toUserId
-      //   // TODO add real filtering here
-      // ),
+      subscribe: withFilter(
+        () => ps.asyncIterator("newFriendRequest"),
+        (payload, variables) => {
+          console.log(payload, variables)
+          return payload.newFriendRequest.toUserId == variables.toUserId
+        }
+        // TODO add real filtering here
+      ),
       // resolve: payload => {
       //   console.log("RESOLVE NEW FRIEND REQUEST SUBSCRIPTION")
       //   console.log(payload)
       //   return new FriendRequest(payload.newFriendRequest)
       // },
-      subscribe: () => ps.asyncIterator("newFriendRequest"),
+      // subscribe: () => ps.asyncIterator("newFriendRequest"),
     },
   },
 }

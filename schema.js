@@ -65,6 +65,7 @@ type Group {
 type Subscription {
   newFriendRequest(toUserId: ID): FriendRequest
   newMessage(forUserId: ID!): Message
+  newGroup(forUserId: ID!): Group
 }
 
 type Query {
