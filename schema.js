@@ -14,13 +14,6 @@ type FriendRequest {
   createdAt: String
 }
 
-type ReadPosition {
-  id: ID!
-  userId: ID!
-  chatId: ID!
-  messageId: ID!
-}
-
 type User {
   id: ID!
   token: String
@@ -35,6 +28,13 @@ type User {
   allMessages: [Message]
 }
 
+type ReadPosition {
+  id: ID!
+  userId: ID!
+  chatId: ID!
+  messageId: ID!
+}
+
 type Chat {
   id: ID!
   name: String!
@@ -47,6 +47,7 @@ type Message {
   userId: ID!
   content: Content
 }
+
 
 type Content {
   type: String!
@@ -67,6 +68,7 @@ type Subscription {
   newFriendRequest(toUserId: ID): FriendRequest
   newMessage(forUserId: ID!): Message
   newGroup(forUserId: ID!): Group
+  newReadPosition(forUserId: ID!): ReadPosition
 }
 
 type Query {
@@ -115,7 +117,7 @@ type Mutation {
 
   acceptFriendRequest(
     friendRequestId: ID!,
-  ): String
+  ): Group
 
   createGroupRequest(
     message: String!,

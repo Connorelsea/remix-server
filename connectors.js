@@ -104,7 +104,8 @@ Message.hasOne(Content)
 
 export const ReadPosition = db.define("read_position", {})
 
-ReadPosition.belongsTo(Chat)
+ReadPosition.belongsTo(Chat, { through: "ChatReadPositions" })
+Chat.belongsToMany(ReadPosition, { through: "ChatReadPositions" })
 ReadPosition.belongsTo(Message)
 ReadPosition.belongsTo(User)
 
@@ -120,13 +121,15 @@ db.sync({ force: true }).then(async val => {
     phone_number: "2258038302",
     iconUrl:
       "https://pbs.twimg.com/profile_images/938193159816929280/TUxW1wek_400x400.jpg",
-    color: "#0096E7",
+    color: "#0f72e0",
   })
 
   const testGroup = await Group.create({
-    iconUrl: "",
+    iconUrl:
+      "https://static.listionary.com/core/uploads/1467711649-main-sour-patch-kids-IRk.jpg",
     name: "Sour Patch",
-    description: "First group",
+    description:
+      "The first group to test the groups feature when in Remix development mode",
   })
 
   testUser.addGroup(testGroup)
@@ -180,10 +183,10 @@ db.sync({ force: true }).then(async val => {
 
   User.create({
     name: "Corn Cob",
-    username: "connor",
+    username: "corncob",
     description: "a corn on the net",
     password: bcrypt.hashSync("password", 10),
-    email: "connorelsea@gmail.com",
+    email: "corn@gmail.com",
     phone_number: "2258038302",
     iconUrl:
       "https://media1.britannica.com/eb-media/36/167236-004-AE764A76.jpg",

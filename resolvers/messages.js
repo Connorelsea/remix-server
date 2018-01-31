@@ -64,6 +64,8 @@ const updateReadPosition = isAuthenticatedResolver.createResolver(
 
     const msg = await Message.findOne({ where: { id: forMessageId } })
     const chat = await msg.getChat()
+    const group = await chat.getGroup()
+    const members = await group.getMembers()
 
     // If a read position already exists for this specific user
     // in this specific chat, remove it so it can be replaced.
@@ -82,6 +84,11 @@ const updateReadPosition = isAuthenticatedResolver.createResolver(
     pos.setChat(chat)
     pos.setMessage(msg)
 
+    ps.publish("newReadPosition", {
+      newReadPosition: pos,
+      forUsers: members,
+    })
+
     return pos
   }
 )
@@ -92,6 +99,25 @@ export default {
     updateReadPosition,
   },
   Subscription: {
+    newReadPosition: {
+      subscribe: withFilter(
+        () => ps.asyncIterator("newReadPosition"),
+        (payload, variables, context) => {
+          const { forUserId } = variables
+          const { newReadPosition, forUsers } = payload
+          const { user } = context
+
+          const foundUser = forUsers.find(user => user.id == forUserId)
+
+          if (foundUser) {
+            return true
+          } else {
+            return false
+          }
+        }
+      ),
+    },
+
     newMessage: {
       subscribe: withFilter(
         () => ps.asyncIterator("newMessage"),
@@ -100,20 +126,15 @@ export default {
           const { newMessage, forUsers } = payload
           const { user } = context
 
-          console.log("in subscribe filter")
-
           const foundUser = forUsers.find(user => user.id == forUserId)
 
           if (foundUser) {
             return true
           } else {
             return false
-            // TODO error on
           }
         }
-        // TODO add real filtering here
       ),
-      // subscribe: () => ps.asyncIterator("newFriendRequest"),
     },
   },
 }

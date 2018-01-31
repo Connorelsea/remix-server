@@ -115,7 +115,7 @@ const relevantUsers = isAuthenticatedResolver.createResolver(
 
     if (!foundUsers) foundUsers = []
     if (!friends) friends = []
-    return [...friends, ...foundUsers]
+    return [...friends, ...foundUsers, user]
   }
 )
 

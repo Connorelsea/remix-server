@@ -85,7 +85,7 @@ const acceptFriendRequest = isAuthenticatedResolver.createResolver(
 
       friendRequest.destroy()
 
-      return friendRequestId
+      return newGroup
     } else {
       return -999
       // throw erorr, not right user
@@ -107,18 +107,9 @@ export default {
     newFriendRequest: {
       subscribe: withFilter(
         () => ps.asyncIterator("newFriendRequest"),
-        (payload, variables) => {
-          console.log(payload, variables)
-          return payload.newFriendRequest.toUserId == variables.toUserId
-        }
-        // TODO add real filtering here
+        (payload, variables) =>
+          payload.newFriendRequest.toUserId == variables.toUserId
       ),
-      // resolve: payload => {
-      //   console.log("RESOLVE NEW FRIEND REQUEST SUBSCRIPTION")
-      //   console.log(payload)
-      //   return new FriendRequest(payload.newFriendRequest)
-      // },
-      // subscribe: () => ps.asyncIterator("newFriendRequest"),
     },
   },
 }
