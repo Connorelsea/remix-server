@@ -1,7 +1,7 @@
 import Sequelize from "sequelize"
 import bcrypt from "bcrypt"
 
-const local = true
+const local = false
 
 const db = local
   ? new Sequelize("remix", "", null, {
