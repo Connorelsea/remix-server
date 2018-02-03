@@ -43,9 +43,7 @@ const ContentTypes = [
   "remix/file",
   "remix/poll",
   "remix/contact",
-  "remix/spotify_song",
-  "remix/spotify_album",
-  "remix/spotify_playlist",
+  "remix/spotify/track",
 ]
 
 export const Content = db.define("content", {
@@ -102,11 +100,15 @@ Message.hasOne(Content)
 
 // Read positions
 
-export const ReadPosition = db.define("read_position", {})
+export const ReadPosition = db.define("ReadPositions", {})
 
 ReadPosition.belongsTo(Chat, { through: "ChatReadPositions" })
 Chat.belongsToMany(ReadPosition, { through: "ChatReadPositions" })
 ReadPosition.belongsTo(Message)
+Message.belongsToMany(ReadPosition, {
+  through: "ChatReadPositions",
+  as: "readPositions",
+})
 ReadPosition.belongsTo(User)
 
 db.sync({ force: true }).then(async val => {
@@ -199,6 +201,9 @@ db.sync({ force: true }).then(async val => {
     password: bcrypt.hashSync("test", 10),
     email: "test",
     phone_number: "2258038302",
+    color: "#D1D5DB",
+    iconUrl:
+      "http://pbs.twimg.com/profile_images/929933611754708992/ioSgz49P_400x400.jpg",
   })
 
   otherUser.addGroup(testGroup)

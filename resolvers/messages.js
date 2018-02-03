@@ -20,7 +20,9 @@ const createMessage = isAuthenticatedResolver.createResolver(
 
     console.log(args)
 
-    const message = await Message.create(
+    let messages = []
+
+    let msg = await Message.create(
       {
         content: {
           // type: "remix/text",
@@ -34,25 +36,45 @@ const createMessage = isAuthenticatedResolver.createResolver(
         include: [Content],
       }
     )
+    messages.push(msg)
 
-    console.log(args)
+    if (type === "remix/text") {
+      if (data.text.includes("https://open.spotify.com/track/")) {
+        const spotifyId = data.text.split("/track/")[1]
+        messages = []
+        msg = await Message.create(
+          {
+            content: {
+              type: "remix/spotify/track",
+              data: { id: spotifyId },
+            },
+            userId: id,
+          },
+          {
+            include: [Content, { model: ReadPosition, as: "readPositions" }],
+          }
+        )
+        messages.push(msg)
+      }
+    }
 
     // TODO, check if user is in the chat, if not, dont send
 
     const chat = await Chat.findOne({ where: { id: chatId } })
-    console.log(chat)
     const group = await chat.getGroup()
-    console.log(group)
     const chatMembers = await group.getMembers()
-    chat.addMessage(message)
-    message.setChat(chat)
 
-    ps.publish("newMessage", {
-      newMessage: message,
-      forUsers: chatMembers,
+    messages.forEach(message => {
+      message.setChat(chat)
+      chat.addMessage(message)
+      ps.publish("newMessage", {
+        newMessage: message,
+        forUsers: chatMembers,
+      })
     })
 
-    return message
+    // TODO: Return multiple here??
+    return messages[0]
   }
 )
 
@@ -86,14 +108,23 @@ const updateReadPosition = isAuthenticatedResolver.createResolver(
 
     ps.publish("newReadPosition", {
       newReadPosition: pos,
-      forUsers: members,
+      forUsers: members.filter(member => member.id !== id),
     })
 
     return pos
   }
 )
 
+const getReadPositions = isAuthenticatedResolver.createResolver(
+  async (message, args, context, info) => {
+    return await ReadPosition.findAll({ where: { userId: message.userId } })
+  }
+)
+
 export default {
+  Message: {
+    readPositions: getReadPositions,
+  },
   Mutation: {
     createMessage,
     updateReadPosition,

@@ -26,6 +26,7 @@ type User {
   groups: [Group]
   friendRequests: [FriendRequest]
   allMessages: [Message]
+  currentReadPositions: [ReadPosition]
 }
 
 type ReadPosition {
@@ -46,6 +47,7 @@ type Message {
   chatId: ID!
   userId: ID!
   content: Content
+  readPositions: [ReadPosition]
 }
 
 

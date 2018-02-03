@@ -6,6 +6,7 @@ import {
   MyFriendRequests,
   Message,
   Content,
+  ReadPosition,
 } from "../connectors"
 
 import jwt from "jsonwebtoken"
@@ -202,10 +203,19 @@ const getAllMessages = isAuthenticatedResolver.createResolver(
       where: {
         [Op.or]: userMessageFilters,
       },
-      include: [{ model: Content, as: "content" }],
+      include: [
+        { model: Content, as: "content" },
+        { model: ReadPosition, as: "readPositions" },
+      ],
     })
 
     return messages
+  }
+)
+
+const getCurrentReadPositions = isAuthenticatedResolver.createResolver(
+  async (user, args, context, info) => {
+    return await ReadPosition.findAll({ where: { userId: user.id } })
   }
 )
 
@@ -225,5 +235,6 @@ export default {
     groups,
     friendRequests: getFriendRequests,
     allMessages: getAllMessages,
+    currentReadPositions: getCurrentReadPositions,
   },
 }
