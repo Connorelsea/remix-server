@@ -30,6 +30,9 @@ function userIdentifier() {
         iat: payload.iat,
       }
     } catch (error) {
+      console.log("CANT GET USER")
+      console.log(ctx.request)
+      console.log(error)
       // ctx.user = undefined
       // ctx.throw(401, { error: "access_denied " })
       // ctx.unauthorized()
@@ -43,6 +46,12 @@ function userIdentifier() {
 const gqlkoa = graphqlKoa(ctx => ({
   schema,
   context: { ...ctx },
+  formatError: (error, ctx) => ({
+    message: error.message,
+    locations: error.locations,
+    stack: error.stack,
+    path: error.path,
+  }),
 }))
 
 var logger = require("koa-logger")

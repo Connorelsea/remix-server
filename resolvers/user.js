@@ -116,6 +116,7 @@ const relevantUsers = isAuthenticatedResolver.createResolver(
 
     if (!foundUsers) foundUsers = []
     if (!friends) friends = []
+
     return [...friends, ...foundUsers, user]
   }
 )
@@ -143,9 +144,6 @@ const getFriendRequests = isAuthenticatedResolver.createResolver(
 
 const searchUsers = isAuthenticatedResolver.createResolver(
   async (root, { phrase }, context, error) => {
-    console.log(`[USER SEARCH] \"${phrase}\"`)
-    console.time("user_search")
-
     let transformedPhrase = phrase.replace("-", "").trim()
 
     const isNumber = !isNaN(phrase)
@@ -172,10 +170,6 @@ const searchUsers = isAuthenticatedResolver.createResolver(
     })
     foundUsers = [...foundUsers, ...foundBuffer]
 
-    console.log("FOUND_USERS")
-    console.log(foundUsers)
-
-    console.timeEnd("user_search")
     return foundUsers
   }
 )
@@ -207,6 +201,7 @@ const getAllMessages = isAuthenticatedResolver.createResolver(
         { model: Content, as: "content" },
         { model: ReadPosition, as: "readPositions" },
       ],
+      order: [["createdAt", "ASC"]],
     })
 
     return messages

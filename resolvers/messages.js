@@ -33,7 +33,10 @@ const createMessage = isAuthenticatedResolver.createResolver(
         userId: id,
       },
       {
-        include: [Content],
+        include: [
+          { model: Content, as: "content" },
+          { model: ReadPosition, as: "readPositions" },
+        ],
       }
     )
     messages.push(msg)
@@ -51,7 +54,10 @@ const createMessage = isAuthenticatedResolver.createResolver(
             userId: id,
           },
           {
-            include: [Content, { model: ReadPosition, as: "readPositions" }],
+            include: [
+              { model: Content, as: "content" },
+              { model: ReadPosition, as: "readPositions" },
+            ],
           }
         )
         messages.push(msg)
@@ -121,9 +127,16 @@ const getReadPositions = isAuthenticatedResolver.createResolver(
   }
 )
 
+const getContent = isAuthenticatedResolver.createResolver(
+  async (message, args, context, info) => {
+    return await message.getContent()
+  }
+)
+
 export default {
   Message: {
     readPositions: getReadPositions,
+    content: getContent,
   },
   Mutation: {
     createMessage,

@@ -1,9 +1,9 @@
 import Sequelize from "sequelize"
 import bcrypt from "bcrypt"
 
-const local = false
+const local = true
 
-const db = local
+export const db = local
   ? new Sequelize("remix", "", null, {
       dialect: "postgres",
     })
@@ -111,110 +111,112 @@ Message.belongsToMany(ReadPosition, {
 })
 ReadPosition.belongsTo(User)
 
-db.sync({ force: true }).then(async val => {
-  console.log("Done syncing")
+// db.sync({ force: true })
 
-  const testUser = await User.create({
-    name: "Connor Elsea",
-    username: "connor",
-    description: "testing bio in connectors",
-    password: bcrypt.hashSync("password", 10),
-    email: "connorelsea@gmail.com",
-    phone_number: "2258038302",
-    iconUrl:
-      "https://pbs.twimg.com/profile_images/938193159816929280/TUxW1wek_400x400.jpg",
-    color: "#0f72e0",
-  })
+// db.sync({ force: true }).then(async val => {
+//   console.log("Done syncing")
 
-  const testGroup = await Group.create({
-    iconUrl:
-      "https://static.listionary.com/core/uploads/1467711649-main-sour-patch-kids-IRk.jpg",
-    name: "Sour Patch",
-    description:
-      "The first group to test the groups feature when in Remix development mode",
-  })
+//   const testUser = await User.create({
+//     name: "Connor Elsea",
+//     username: "connor",
+//     description: "testing bio in connectors",
+//     password: bcrypt.hashSync("password", 10),
+//     email: "connorelsea@gmail.com",
+//     phone_number: "2258038302",
+//     iconUrl:
+//       "https://pbs.twimg.com/profile_images/938193159816929280/TUxW1wek_400x400.jpg",
+//     color: "#0f72e0",
+//   })
 
-  testUser.addGroup(testGroup)
+//   const testGroup = await Group.create({
+//     iconUrl:
+//       "https://static.listionary.com/core/uploads/1467711649-main-sour-patch-kids-IRk.jpg",
+//     name: "Sour Patch",
+//     description:
+//       "The first group to test the groups feature when in Remix development mode",
+//   })
 
-  const testChat = await Chat.create({
-    name: "general",
-  })
+//   testUser.addGroup(testGroup)
 
-  const testRapChat = await Chat.create({
-    name: "rapchat",
-  })
+//   const testChat = await Chat.create({
+//     name: "general",
+//   })
 
-  testGroup.addChat(testChat)
-  testGroup.addChat(testRapChat)
+//   const testRapChat = await Chat.create({
+//     name: "rapchat",
+//   })
 
-  testChat.setGroup(testGroup)
-  testRapChat.setGroup(testGroup)
+//   testGroup.addChat(testChat)
+//   testGroup.addChat(testRapChat)
 
-  const testMessage = await Message.create(
-    {
-      content: {
-        type: "remix/text",
-        data: { text: "hello" },
-      },
-    },
-    {
-      include: [Content],
-    }
-  )
+//   testChat.setGroup(testGroup)
+//   testRapChat.setGroup(testGroup)
 
-  testMessage.setUser(testUser)
+//   const testMessage = await Message.create(
+//     {
+//       content: {
+//         type: "remix/text",
+//         data: { text: "hello" },
+//       },
+//     },
+//     {
+//       include: [Content],
+//     }
+//   )
 
-  const testRapMessage = await Message.create(
-    {
-      content: {
-        type: "remix/text",
-        data: { text: "i love rap" },
-      },
-    },
-    {
-      include: [Content],
-    }
-  )
+//   testMessage.setUser(testUser)
 
-  testRapMessage.setUser(testUser)
+//   const testRapMessage = await Message.create(
+//     {
+//       content: {
+//         type: "remix/text",
+//         data: { text: "i love rap" },
+//       },
+//     },
+//     {
+//       include: [Content],
+//     }
+//   )
 
-  testChat.addMessage(testMessage)
-  testMessage.setChat(testChat)
-  testRapChat.addMessage(testRapMessage)
-  testRapMessage.setChat(testRapChat)
+//   testRapMessage.setUser(testUser)
 
-  User.create({
-    name: "Corn Cob",
-    username: "corncob",
-    description: "a corn on the net",
-    password: bcrypt.hashSync("password", 10),
-    email: "corn@gmail.com",
-    phone_number: "2258038302",
-    iconUrl:
-      "https://media1.britannica.com/eb-media/36/167236-004-AE764A76.jpg",
-  })
+//   testChat.addMessage(testMessage)
+//   testMessage.setChat(testChat)
+//   testRapChat.addMessage(testRapMessage)
+//   testRapMessage.setChat(testRapChat)
 
-  const otherUser = await User.create({
-    name: "test",
-    username: "test",
-    description: "a test on the net",
-    password: bcrypt.hashSync("test", 10),
-    email: "test",
-    phone_number: "2258038302",
-    color: "#D1D5DB",
-    iconUrl:
-      "http://pbs.twimg.com/profile_images/929933611754708992/ioSgz49P_400x400.jpg",
-  })
+//   User.create({
+//     name: "Corn Cob",
+//     username: "corncob",
+//     description: "a corn on the net",
+//     password: bcrypt.hashSync("password", 10),
+//     email: "corn@gmail.com",
+//     phone_number: "2258038302",
+//     iconUrl:
+//       "https://media1.britannica.com/eb-media/36/167236-004-AE764A76.jpg",
+//   })
 
-  otherUser.addGroup(testGroup)
+//   const otherUser = await User.create({
+//     name: "test",
+//     username: "test",
+//     description: "a test on the net",
+//     password: bcrypt.hashSync("test", 10),
+//     email: "test",
+//     phone_number: "2258038302",
+//     color: "#D1D5DB",
+//     iconUrl:
+//       "http://pbs.twimg.com/profile_images/929933611754708992/ioSgz49P_400x400.jpg",
+//   })
 
-  User.create({
-    name: "Jospeh A. Bakington",
-    username: "longusernameaswell",
-    description:
-      "This person has a very long name and a very long username and a very long description.",
-    password: bcrypt.hashSync("test", 10),
-    email: "test",
-    phone_number: "2258038302",
-  })
-})
+//   otherUser.addGroup(testGroup)
+
+//   User.create({
+//     name: "Jospeh A. Bakington",
+//     username: "longusernameaswell",
+//     description:
+//       "This person has a very long name and a very long username and a very long description.",
+//     password: bcrypt.hashSync("test", 10),
+//     email: "test",
+//     phone_number: "2258038302",
+//   })
+// })

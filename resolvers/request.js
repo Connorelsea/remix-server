@@ -10,6 +10,7 @@ import {
 } from "../connectors"
 import { Op } from "sequelize"
 import { PubSub, withFilter } from "graphql-subscriptions"
+import { currentId } from "async_hooks"
 
 const ps = new PubSub()
 
@@ -80,17 +81,52 @@ const acceptFriendRequest = isAuthenticatedResolver.createResolver(
         name: "general",
       })
 
+      const secondChat = await Chat.create({
+        name: "music",
+      })
+
       newGroup.addChat(newChat)
-      newChat.setGroup(newGroup)
+      await newChat.setGroup(newGroup)
 
-      friendRequest.destroy()
+      newGroup.addChat(secondChat)
+      await secondChat.setGroup(newGroup)
 
-      return newGroup
+      await friendRequest.destroy()
+
+      // Send web socket notification to both new friends
+      // The frontend will react to these by adding a new
+      // relevant user and new group to the redux store.
+
+      ps.publish("newFriend", {
+        newFriend: {
+          forUserId: currentUser.id,
+          newUser: newFriend,
+          newGroup,
+        },
+      })
+
+      ps.publish("newFriend", {
+        newFriend: {
+          forUserId: newFriend.id,
+          newUser: currentUser,
+          newGroup,
+        },
+      })
+
+      return "true"
     } else {
       return -999
       // throw erorr, not right user
     }
   }
+)
+
+const sendGroupInvitation = isAuthenticatedResolver.createResolver(
+  async (root, args, context, info) => {}
+)
+
+const acceptGroupInvitation = isAuthenticatedResolver.createResolver(
+  async (root, args, context, info) => {}
 )
 
 export default {
@@ -109,6 +145,13 @@ export default {
         () => ps.asyncIterator("newFriendRequest"),
         (payload, variables) =>
           payload.newFriendRequest.toUserId == variables.toUserId
+      ),
+    },
+    newFriend: {
+      subscribe: withFilter(
+        () => ps.asyncIterator("newFriend"),
+        (payload, variables) =>
+          payload.newFriend.forUserId == variables.forUserId
       ),
     },
   },

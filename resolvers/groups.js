@@ -11,7 +11,6 @@ const createGroup = isAuthenticatedResolver.createResolver(
       name,
       description,
     })
-
     return group
   }
 )
@@ -24,13 +23,13 @@ const getGroup = isAuthenticatedResolver.createResolver(
   }
 )
 
-const getChats = isAuthenticatedResolver.createResolver(
+const getChats = baseResolver.createResolver(
   async (group, args, context, info) => {
     return await group.getChats()
   }
 )
 
-const getMembers = isAuthenticatedResolver.createResolver(
+const getMembers = baseResolver.createResolver(
   async (group, args, context, info) => {
     return await group.getMembers()
   }
@@ -41,6 +40,12 @@ const getChat = isAuthenticatedResolver.createResolver(
     const { id } = args
     const chat = await Chat.findOne({ where: { id } })
     return chat
+  }
+)
+
+const getMessages = isAuthenticatedResolver.createResolver(
+  async (chat, args, context, error) => {
+    return await chat.getMessages()
   }
 )
 
@@ -56,5 +61,7 @@ export default {
     chats: getChats,
     members: getMembers,
   },
-  Chat: {},
+  Chat: {
+    messages: getMessages,
+  },
 }

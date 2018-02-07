@@ -13,6 +13,10 @@ const AuthenticationRequiredError = createError("AuthenticationRequiredError", {
 export const isAuthenticatedResolver = baseResolver.createResolver(
   // Extract the user from context (undefined if non-existent)
   (root, args, context, error) => {
+    console.log("ROOT", root)
+    console.log("ARGS", args)
+    console.log("CONTEXT", context)
+    console.log("ERROR/INFO", error)
     console.log("[AUTH] Checking if authenticated")
 
     if (context.user === undefined) {

@@ -43,13 +43,13 @@ type Chat {
 }
 
 type Message {
+  createdAt: String
   id: ID!
   chatId: ID!
   userId: ID!
   content: Content
   readPositions: [ReadPosition]
 }
-
 
 type Content {
   type: String!
@@ -66,8 +66,14 @@ type Group {
   members: [User]
 }
 
+type NewFriendResponse {
+  newUser: User!
+  newGroup: Group!
+}
+
 type Subscription {
   newFriendRequest(toUserId: ID): FriendRequest
+  newFriend(forUserId: ID!): NewFriendResponse
   newMessage(forUserId: ID!): Message
   newGroup(forUserId: ID!): Group
   newReadPosition(forUserId: ID!): ReadPosition
@@ -115,11 +121,11 @@ type Mutation {
     message: String,
     fromUserId: ID!,
     toUserId: ID!,
-  ): String
+  ): FriendRequest
 
   acceptFriendRequest(
     friendRequestId: ID!,
-  ): Group
+  ): String
 
   createGroupRequest(
     message: String!,
