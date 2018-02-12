@@ -14,6 +14,11 @@ type FriendRequest {
   createdAt: String
 }
 
+type MessageResponse {
+  unreadMessageIds: [ID]
+  recentMessages: [Message]
+}
+
 type User {
   id: ID!
   token: String
@@ -100,6 +105,7 @@ type Mutation {
     name: String,
     description: String,
     color: String,
+    iconUrl: String
   ): User
 
   loginUserWithEmail(

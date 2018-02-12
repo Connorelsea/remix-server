@@ -22,6 +22,7 @@ const createUserQuery = `
     $name: String
     $description: String
     $color: String
+    $iconUrl: String
   ) {
     createUser(
       email: $email
@@ -31,6 +32,7 @@ const createUserQuery = `
       name: $name
       description: $description
       color: $color
+      iconUrl: $iconUrl
     ) {
       id
       token
@@ -50,6 +52,24 @@ const createMessageQuery = `
     ) {
       id
     }
+  }
+`
+
+const createFriendRequestQuery = `
+  mutation($message: String, $fromUserId: ID!, $toUserId: ID!) {
+    createFriendRequest(
+      message: $message,
+      fromUserId: $fromUserId,
+      toUserId: $toUserId
+    ) {
+      id
+    }
+  }
+`
+
+const acceptFriendRequestQuery = `
+  mutation acceptFriendRequest {
+    acceptFriendRequest(friendRequestId: 1)
   }
 `
 
@@ -87,6 +107,9 @@ test("Create and query a new user", async () => {
       name: "Test User",
       username: "test",
       password: "test",
+      color: "#B42525",
+      iconUrl:
+        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-0.3.5&s=5da2982426ae7e8085acbc322d7ad54d&dpr=1&auto=format&fit=crop&w=376&h=251&q=60&cs=tinysrgb",
     },
   })
 
@@ -127,9 +150,12 @@ test("Send new friend request", async () => {
     rootValue: {},
     variableValues: {
       email: "react",
-      name: "React Native",
-      username: "reactnativelife",
-      password: "test",
+      name: "Woman Testuser",
+      username: "womantestuser",
+      password: "Testing! This is my bio!",
+      color: "#89C1FF",
+      iconUrl:
+        "https://i.pinimg.com/236x/41/53/a8/4153a8d6d45dae78a9e51791ff15007f.jpg",
     },
   })
 
@@ -137,17 +163,6 @@ test("Send new friend request", async () => {
   expect(createResult.data.createUser.id).toEqual("2")
   expect(createResult.data.createUser.token).toBeDefined()
 
-  const createFriendRequestQuery = `
-  mutation($message: String, $fromUserId: ID!, $toUserId: ID!) {
-    createFriendRequest(
-      message: $message,
-      fromUserId: $fromUserId,
-      toUserId: $toUserId
-    ) {
-      id
-    }
-  }
-  `
   // User is needed on context, querying needs authorization
   const contextValue = {
     user: {
@@ -197,11 +212,6 @@ test("Receive a new friend request and accept", async () => {
   expect(request.toUser.id).toEqual("1")
   expect(request.message).toEqual("Hello, World!")
 
-  const acceptFriendRequestQuery = `
-    mutation acceptFriendRequest {
-      acceptFriendRequest(friendRequestId: 1)
-    }
-  `
   const acceptFriendRequestResult = await makeAuthenticatedQuery(
     acceptFriendRequestQuery
   )
@@ -426,15 +436,58 @@ test("A user should query allMessages to get recent messages", async () => {
   console.log("ALL MESSAGES", messages.map(m => m.content.data))
 
   expect(messages).toBeDefined()
-  expect(messages.length).toBe(4)
+  expect(messages.length).toBe(5)
 
-  // Newest messages first
-  expect(messages[0].content.data.text).toBe("fourth message")
-  expect(messages[0].chatId).toBe("2")
-  expect(messages[1].content.data.text).toBe("third message")
-  expect(messages[2].content.data.text).toBe("second message")
-  expect(messages[3].content.data.text).toBe("hello")
+  expect(messages[0].content.data.text).toBe("hello")
+  expect(messages[0].chatId).toBe("1")
+  expect(messages[1].content.data.text).toBe("second message")
+  expect(messages[2].content.data.text).toBe("third message")
+  expect(messages[3].content.data.text).toBe("fourth message")
+  expect(messages[3].chatId).toBe("2")
 })
+
+test("More users join the chat", async () => {})
+
+test("A client should be able to mark a user's read position for each chat", async () => {
+  const users = [
+    {
+      email: "amy@gmail.com",
+      name: "Amy Corn",
+      username: "am57",
+      password: "pw",
+      iconUrl:
+        "https://cdn.pixabay.com/photo/2017/08/20/23/04/girl-2663559_960_720.jpg",
+    },
+    {
+      email: "chad@aol.com",
+      name: "Chad Peters",
+      username: "chad_45",
+      password: "pw",
+      iconUrl:
+        "https://static.goldderby.com/wp-content/uploads/2016/04/author-tony-ruiz.jpg",
+    },
+    {
+      email: "lisa@yahoo.com",
+      name: "Lisa Sapper",
+      username: "lisa556",
+      password: "pw",
+      iconUrl:
+        "https://siri-cdn.appadvice.com/wp-content/appadvice-v2-media/2017/01/Portrait-mode-curly-hair_75d678192b4c14047f1431c904491ee7-xl.jpg",
+    },
+  ]
+
+  users.forEach(async user => {
+    const response = await makeAuthenticatedQuery(createUserQuery, user)
+
+    await makeAuthenticatedQuery(createFriendRequestQuery, {
+      message: "Hello, I want to be your friend",
+      fromUserId: response.data.createUser.id,
+      toUserId: "1",
+    })
+  })
+})
+
+test("Should return messages after the user's read position as unread", async () => {})
 
 test("Invite a user to a group", async () => {})
 

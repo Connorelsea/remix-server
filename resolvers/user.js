@@ -23,7 +23,16 @@ const getToken = payload => jwt.sign(payload, "secretText", { expiresIn: 1440 })
 const createUser = baseResolver.createResolver(
   async (
     root,
-    { name, username, password, description, email, phone_number, color },
+    {
+      name,
+      username,
+      password,
+      description,
+      email,
+      phone_number,
+      color,
+      iconUrl,
+    },
     context,
     error
   ) => {
@@ -37,6 +46,7 @@ const createUser = baseResolver.createResolver(
       email,
       phone_number,
       color,
+      iconUrl,
     })
 
     return {
@@ -173,6 +183,19 @@ const searchUsers = isAuthenticatedResolver.createResolver(
     return foundUsers
   }
 )
+
+// INITIAL GET MESSAGE SEQUENCE RE-WORK
+// When the program loads, it should intelligently load unseen messages.
+
+// ALGORITHM FOR UNSEEN MESSAGES
+
+// let user
+//
+// for each group
+//   for each chat
+//     chat.messages.map m ->
+//       m is after user.readPositions[chat]
+//       if user has no
 
 const getAllMessages = isAuthenticatedResolver.createResolver(
   async (user, args, context, info) => {
