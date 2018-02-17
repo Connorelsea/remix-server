@@ -1,7 +1,7 @@
 import Sequelize from "sequelize"
 import bcrypt from "bcrypt"
 
-const local = true
+let local = true
 
 if (process.env.PORT !== undefined) local = false
 

@@ -152,7 +152,7 @@ test("Send new friend request", async () => {
       email: "react",
       name: "Woman Testuser",
       username: "womantestuser",
-      password: "Testing! This is my bio!",
+      password: "Tezsting! This is my bio!",
       color: "#89C1FF",
       iconUrl:
         "https://i.pinimg.com/236x/41/53/a8/4153a8d6d45dae78a9e51791ff15007f.jpg",
