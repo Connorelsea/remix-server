@@ -36,7 +36,7 @@ app.use(engine.expressMiddleware())
 app.use(compression())
 
 // Use cors
-app.options("*", cors())
+app.use(cors({ origin: "*" }))
 
 // Enable user context
 

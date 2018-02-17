@@ -3,6 +3,8 @@ import bcrypt from "bcrypt"
 
 const local = true
 
+if (process.env.PORT !== undefined) local = false
+
 export const db = local
   ? new Sequelize("remix", "", null, {
       dialect: "postgres",
