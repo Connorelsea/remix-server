@@ -43,6 +43,7 @@ type ReadPosition {
 
 type Chat {
   id: ID!
+  description: String
   name: String!
   messages: [Message]
 }
@@ -122,6 +123,12 @@ type Mutation {
     name: String,
     username: String
   ): String
+
+  createChat(
+    inGroupId: ID!
+    name: String!
+    description: String
+  ): Chat
 
   createFriendRequest(
     message: String,

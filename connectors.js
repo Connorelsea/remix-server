@@ -95,7 +95,7 @@ GroupInvitation.belongsTo(Group, { as: "forGroup" })
 GroupInvitation.belongsTo(User, { as: "toUser" })
 
 Group.belongsToMany(Chat, { through: "GroupChats" })
-Chat.belongsTo(Group, { through: "GroupChats" })
+Chat.belongsTo(Group, { through: "GroupChats", as: "group" })
 Chat.belongsToMany(Message, { through: "ChatMessages" })
 Message.belongsTo(Chat, { through: "ChatMessages" })
 Message.belongsTo(User)
@@ -114,7 +114,9 @@ Message.belongsToMany(ReadPosition, {
 })
 ReadPosition.belongsTo(User)
 
-db.sync({ force: true })
+db.sync()
+
+// db.sync({ force: true })
 
 // db.sync({ force: true }).then(async val => {
 //   console.log("Done syncing")

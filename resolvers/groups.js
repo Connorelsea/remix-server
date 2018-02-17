@@ -23,6 +23,16 @@ const getGroup = isAuthenticatedResolver.createResolver(
   }
 )
 
+const createChat = isAuthenticatedResolver.createResolver(
+  async (root, args, context, error) => {
+    const { inGroupId, name, description } = args
+    const chat = await Chat.create({ groupId: inGroupId, name, description })
+    const group = await chat.getGroup()
+    group.addChat(chat)
+    return chat
+  }
+)
+
 const getChats = baseResolver.createResolver(
   async (group, args, context, info) => {
     return await group.getChats()
@@ -52,6 +62,7 @@ const getMessages = isAuthenticatedResolver.createResolver(
 export default {
   Mutation: {
     createGroup,
+    createChat,
   },
   Query: {
     Group: getGroup,

@@ -43,6 +43,8 @@ app.use(cors({ origin: "*" }))
 app.use(function(req, res, next) {
   const token = req.get("authorization")
 
+  console.log("REQUEST", req)
+
   console.log("TOKEN GOT", token)
 
   try {
