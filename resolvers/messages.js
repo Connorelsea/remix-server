@@ -43,12 +43,36 @@ const createMessage = isAuthenticatedResolver.createResolver(
 
     if (type === "remix/text") {
       if (data.text.includes("https://open.spotify.com/track/")) {
+        // SPOTIFY TRACK LINK
         const spotifyId = data.text.split("/track/")[1]
         messages = []
         msg = await Message.create(
           {
             content: {
               type: "remix/spotify/track",
+              data: { id: spotifyId },
+            },
+            userId: id,
+          },
+          {
+            include: [
+              { model: Content, as: "content" },
+              { model: ReadPosition, as: "readPositions" },
+            ],
+          }
+        )
+        messages.push(msg)
+      } else if (data.text.includes("https://open.spotify.com/album/")) {
+        // SPOTIFY ALBUM LINK
+        // https://open.spotify.com/album/1BzMONuUlgUnqOrg2aQeAY?si=yaqT1PszSuaHapjm2K61iQ
+
+        const spotifyId = data.text.split("/album/")[1]
+        console.log("SPOTIFY ID", spotifyId)
+        messages = []
+        msg = await Message.create(
+          {
+            content: {
+              type: "remix/spotify/album",
               data: { id: spotifyId },
             },
             userId: id,

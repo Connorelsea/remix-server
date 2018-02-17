@@ -46,6 +46,7 @@ const ContentTypes = [
   "remix/poll",
   "remix/contact",
   "remix/spotify/track",
+  "remix/spotify/album",
 ]
 
 export const Content = db.define("content", {
@@ -113,7 +114,7 @@ Message.belongsToMany(ReadPosition, {
 })
 ReadPosition.belongsTo(User)
 
-// db.sync({ force: true })
+db.sync({ force: true })
 
 // db.sync({ force: true }).then(async val => {
 //   console.log("Done syncing")
