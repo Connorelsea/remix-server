@@ -7,6 +7,8 @@ import {
   Message,
   Content,
   ReadPosition,
+  Group,
+  Chat,
 } from "../connectors"
 
 import jwt from "jsonwebtoken"
@@ -48,6 +50,56 @@ const createUser = baseResolver.createResolver(
       color,
       iconUrl,
     })
+
+    const mixbot = await User.findOne({
+      where: { username: "mixbot" },
+    })
+    user.addFriend(mixbot)
+    mixbot.addFriend(user)
+
+    const newGroup = await Group.create({
+      name: "friend",
+      description: `A great friendship`,
+      isDirectMessage: true,
+    })
+
+    console.log("NEW GROUP")
+    console.log(newGroup)
+
+    newGroup.addMember(user)
+    newGroup.addMember(mixbot)
+
+    const newChat = await Chat.create({
+      name: "support",
+      description: "Need help with Remix? Ask here",
+    })
+
+    const secondChat = await Chat.create({
+      name: "bugs",
+      description: "Report bugs and get feedback",
+    })
+
+    const thirdChat = await Chat.create({
+      name: "saved",
+      description: "Save messages and attachments privately",
+    })
+
+    const fourthChat = await Chat.create({
+      name: "updates",
+      description: "Announcements and updates about Remix",
+    })
+
+    newGroup.addChat(newChat)
+    newChat.setGroup(newGroup)
+
+    newGroup.addChat(secondChat)
+    secondChat.setGroup(newGroup)
+
+    newGroup.addChat(thirdChat)
+    thirdChat.setGroup(newGroup)
+
+    newGroup.addChat(fourthChat)
+    fourthChat.setGroup(newGroup)
 
     return {
       id: user.id,

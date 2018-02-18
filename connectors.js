@@ -95,7 +95,7 @@ GroupInvitation.belongsTo(Group, { as: "forGroup" })
 GroupInvitation.belongsTo(User, { as: "toUser" })
 
 Group.belongsToMany(Chat, { through: "GroupChats" })
-Chat.belongsTo(Group, { through: "GroupChats", as: "group" })
+Chat.belongsTo(Group, { through: "GroupChats" })
 Chat.belongsToMany(Message, { through: "ChatMessages" })
 Message.belongsTo(Chat, { through: "ChatMessages" })
 Message.belongsTo(User)
@@ -114,9 +114,20 @@ Message.belongsToMany(ReadPosition, {
 })
 ReadPosition.belongsTo(User)
 
-db.sync()
+// db.sync()
 
-// db.sync({ force: true })
+db.sync({ force: true }).then(async () => {
+  const mixbot = await User.create({
+    name: "Mixbot",
+    username: "mixbot",
+    description: "The official helpful assistant included in Remix Chat.",
+    password: bcrypt.hashSync("password", 10),
+    email: "remix@elsealabs.com",
+    phone_number: "",
+    iconUrl: "",
+    color: "#D1D5DB",
+  })
+})
 
 // db.sync({ force: true }).then(async val => {
 //   console.log("Done syncing")

@@ -79,10 +79,12 @@ const acceptFriendRequest = isAuthenticatedResolver.createResolver(
 
       const newChat = await Chat.create({
         name: "general",
+        description: "Conversation and chatting",
       })
 
       const secondChat = await Chat.create({
         name: "music",
+        description: "Share and discuss songs, albums, artists",
       })
 
       newGroup.addChat(newChat)
