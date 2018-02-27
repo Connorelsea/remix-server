@@ -39,6 +39,7 @@ type ReadPosition {
   userId: ID!
   chatId: ID!
   messageId: ID!
+  atChatTime: String!
 }
 
 type Chat {
@@ -90,17 +91,19 @@ type Query {
   users(
     phrase: String!
   ): [User]
-  relevantUsers: [User]
 
   Group(id: ID!): Group
 
   Chat(id: ID!): Chat
+
+  relevantUsers: [User]
+  relevantReadPositions: [ReadPosition]
+  unreadMessages: [Message]
 }
 
 type Mutation {
   createUser(
     email: String,
-    phone_number: String
     username: String,
     password: String,
     name: String,

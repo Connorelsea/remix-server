@@ -14,7 +14,7 @@ import {
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
 
-import { Op } from "sequelize"
+import { Op, col } from "sequelize"
 
 import { createError } from "apollo-errors"
 import { resolver } from "graphql-sequelize"
@@ -25,16 +25,7 @@ const getToken = payload => jwt.sign(payload, "secretText", { expiresIn: 1440 })
 const createUser = baseResolver.createResolver(
   async (
     root,
-    {
-      name,
-      username,
-      password,
-      description,
-      email,
-      phone_number,
-      color,
-      iconUrl,
-    },
+    { name, username, password, description, email, color, iconUrl },
     context,
     error
   ) => {
@@ -46,7 +37,6 @@ const createUser = baseResolver.createResolver(
       password: hash,
       description,
       email,
-      phone_number,
       color,
       iconUrl,
     })
@@ -101,6 +91,9 @@ const createUser = baseResolver.createResolver(
     newGroup.addChat(fourthChat)
     fourthChat.setGroup(newGroup)
 
+    console.log("CREATED NEW USER ")
+    console.log(JSON.stringify(user))
+
     return {
       id: user.id,
       token: getToken({ userId: user.id }),
@@ -125,25 +118,6 @@ const loginUserWithEmail = baseResolver.createResolver(
     return loginUser(user, password)
   }
 )
-
-const loginUserWithPhone = baseResolver.createResolver(
-  async (root, { phone_number, password }, context, error) => {
-    const user = await User.find({
-      where: { phone_number: { [Op.like]: phone_number } },
-    })
-    if (!user) return new UserDoesntExistError()
-    return loginUser(user, password)
-  }
-)
-
-const loginUser = async (user, password) => {
-  const correctPassword = await bcrypt.compare(password, user.password)
-  if (!correctPassword) return new WrongPasswordError()
-  return {
-    id: user.id,
-    token: getToken({ userId: user.id }),
-  }
-}
 
 const friends = isAuthenticatedResolver.createResolver(
   async (root, args, context, error) => {
@@ -180,6 +154,39 @@ const relevantUsers = isAuthenticatedResolver.createResolver(
     if (!friends) friends = []
 
     return [...friends, ...foundUsers, user]
+  }
+)
+
+const unreadMessages = isAuthenticatedResolver.createResolver(
+  async (root, args, context, error) => {
+    const { user: { id } } = context
+
+    try {
+      const user = await User.findOne({ where: { id } })
+      const readPositions = await ReadPosition.findAll({
+        where: { userId: id },
+      })
+      // const groups = await user.getGroups()
+
+      // for each read position, get all messages in its
+      // referenced chat after its referenced creation time
+
+      console.log(JSON.stringify(readPositions, null, 2))
+
+      const messagePromises = readPositions.map(rp =>
+        Message.findAll({
+          where: { chatId: rp.chatId, createdAt: { [Op.gt]: rp.atChatTime } },
+        })
+      )
+
+      const promiseArrayResults = await Promise.all(messagePromises)
+      const messages = promiseArrayResults.reduce((a, b) => a.concat(b), [])
+
+      return messages
+    } catch (ex) {
+      return -999
+      console.log(ex)
+    }
   }
 )
 
@@ -293,12 +300,12 @@ export default {
   Mutation: {
     createUser,
     loginUserWithEmail,
-    loginUserWithPhone,
   },
   Query: {
     users: searchUsers,
-    relevantUsers,
     User: getUser,
+    relevantUsers,
+    unreadMessages,
   },
   User: {
     friends,

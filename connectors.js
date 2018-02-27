@@ -5,6 +5,8 @@ let local = true
 
 if (process.env.PORT !== undefined) local = false
 
+console.log("RUNNING WITH LOCAL MODE SET TO " + local)
+
 export const db = local
   ? new Sequelize("remix", "", null, {
       dialect: "postgres",
@@ -103,7 +105,9 @@ Message.hasOne(Content)
 
 // Read positions
 
-export const ReadPosition = db.define("ReadPositions", {})
+export const ReadPosition = db.define("ReadPositions", {
+  atChatTime: Sequelize.DATE,
+})
 
 ReadPosition.belongsTo(Chat, { through: "ChatReadPositions" })
 Chat.belongsToMany(ReadPosition, { through: "ChatReadPositions" })
@@ -116,7 +120,7 @@ ReadPosition.belongsTo(User)
 
 // db.sync()
 
-db.sync({ force: true }).then(async () => {
+db.sync().then(async () => {
   const mixbot = await User.create({
     name: "Mixbot",
     username: "mixbot",

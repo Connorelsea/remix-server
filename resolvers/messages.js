@@ -132,6 +132,7 @@ const updateReadPosition = isAuthenticatedResolver.createResolver(
 
     const pos = await ReadPosition.create({
       userId: id,
+      atChatTime: msg.createdAt,
     })
     pos.setChat(chat)
     pos.setMessage(msg)
