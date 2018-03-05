@@ -159,7 +159,7 @@ apollo-engine@^0.8.9:
     apollo-engine-binary-linux "0.2018.2-37-g678cbb68b"
     apollo-engine-binary-windows "0.2018.2-37-g678cbb68b"
 
-apollo-errors@^1.5.1:
+apollo-errors@^1.7.1:
   version "1.7.1"
   resolved "https://registry.yarnpkg.com/apollo-errors/-/apollo-errors-1.7.1.tgz#6e9b456a83cd32ac4e86351619bbd29aefcf099e"
   dependencies:

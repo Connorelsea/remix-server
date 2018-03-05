@@ -112,12 +112,12 @@ type Query {
 
 type Mutation {
   createUser(
-    email: String,
-    username: String,
-    password: String,
-    name: String,
-    description: String,
-    color: String,
+    email: String
+    username: String
+    password: String
+    name: String
+    description: String
+    color: String
     iconUrl: String
   ): Device
 
@@ -133,7 +133,7 @@ type Mutation {
   ): Device
 
   createGroup(
-    name: String,
+    name: String
     username: String
   ): String
 

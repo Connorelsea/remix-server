@@ -49,7 +49,7 @@ const createUser = baseResolver.createResolver(
       email,
       color,
       iconUrl,
-    })
+    }).catch(e => console.log("USER ERROR", e))
 
     // Create a new initial default device for the new user
     // Creat access and refresh tokens for this device
@@ -76,7 +76,6 @@ const createUser = baseResolver.createResolver(
 )
 
 const UserDoesntExistError = createError("UserDoesntExist", {
-  name: "User Doesnt Exist Error",
   message: "A user with this email address does not exist",
 })
 
@@ -251,7 +250,10 @@ const unreadMessages = isAuthenticatedResolver.createResolver(
 const getUser = isAuthenticatedResolver.createResolver(
   async (root, args, context, error) => {
     const { id } = args
-    const user = await User.findOne({ where: { id } })
+    const user = await User.findOne({
+      where: { id: id },
+    })
+    console.log(user)
     return user
   }
 )

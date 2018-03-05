@@ -6,10 +6,10 @@ import cors from "cors"
 import compression from "compression"
 import schema from "./schema"
 import { checkToken } from "./utils/token"
-import { formatError as apolloFormatError, createError } from "apollo-errors"
+import { formatError, createError } from "apollo-errors"
 import { createServer } from "http"
 import { SubscriptionServer } from "subscriptions-transport-ws"
-import { execute, subscribe } from "graphql"
+import { execute, subscribe, GraphQLError } from "graphql"
 
 require("dotenv").config()
 
@@ -47,7 +47,7 @@ app.use(function(req, res, next) {
 
   console.log("TOKEN GOT", token)
 
-  if (token === null) return next()
+  if (token == "null" || !token) return next()
 
   try {
     const payload = checkToken(token)
@@ -73,23 +73,6 @@ const UnknownError = createError("UnknownError", {
 })
 
 // Start graphql
-
-const formatError = error => {
-  let e = apolloFormatError(error)
-
-  if (e instanceof GraphQLError) {
-    e = apolloFormatError(
-      new UnknownError({
-        data: {
-          originalMessage: e.message,
-          originalError: e.name,
-        },
-      })
-    )
-  }
-
-  return { ...e }
-}
 
 app.use(
   "/graphql",
