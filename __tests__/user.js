@@ -34,7 +34,9 @@ const createUserQuery = `
       iconUrl: $iconUrl
     ) {
       id
-      token
+      userId
+      refreshToken
+      accessToken
     }
   }`
 
@@ -78,19 +80,7 @@ const acceptFriendRequestQuery = `
 // when using the remix platform, in test form.
 
 beforeAll(async () => {
-  return db.sync({ force: true }).then(
-    async () =>
-      await User.create({
-        name: "Mixbot",
-        username: "mixbot",
-        description: "The official helpful assistant included in Remix Chat.",
-        password: bcrypt.hashSync("password", 10),
-        email: "remix@elsealabs.com",
-        phone_number: "",
-        iconUrl: "",
-        color: "#D1D5DB",
-      })
-  )
+  return db.sync({ force: true })
 })
 
 async function makeAuthenticatedQuery(query, vars, context) {
@@ -101,108 +91,192 @@ async function makeAuthenticatedQuery(query, vars, context) {
         ? context
         : {
             user: {
-              id: 2,
+              id: 1,
             },
           },
     rootValue: {},
     schema,
     variableValues: vars,
-  })
+  }).catch(err => console.error(err))
 }
 
 test("Create and query a new user", async () => {
-  const createResult = await graphql({
-    source: createUserQuery,
-    schema,
-    rootValue: {},
-    variableValues: {
-      email: "test",
-      name: "Test User",
-      username: "test",
+  const users = [
+    {
+      email: "test@test.com",
+      name: "Test Userman",
+      username: "testuserman",
       password: "test",
-      color: "#B42525",
+      color: "#B42425",
       iconUrl:
         "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-0.3.5&s=5da2982426ae7e8085acbc322d7ad54d&dpr=1&auto=format&fit=crop&w=376&h=251&q=60&cs=tinysrgb",
     },
-  })
-
-  expect(createResult).toBeDefined()
-  expect(createResult.data.createUser.id).toEqual("2")
-  expect(createResult.data.createUser.token).toBeDefined()
-
-  const source = `
-    query User {
-      User(id: 2) { id name }
-    }
-  `
-
-  const contextValue = {
-    user: {
-      id: createResult.data.createUser.id,
-    },
-  }
-
-  const queryResult = await graphql({
-    source,
-    schema,
-    contextValue,
-  })
-
-  expect(queryResult.data.User.id).toEqual("2")
-  expect(queryResult.data.User.name).toEqual("Test User")
-})
-
-test("New user should be able to log in and receive token", async () => {
-  // TODO:  mutation { loginUserWithEmail }
-})
-
-test("Send new friend request", async () => {
-  const createResult = await graphql({
-    source: createUserQuery,
-    schema,
-    rootValue: {},
-    variableValues: {
+    {
       email: "react",
       name: "Woman Testuser",
       username: "womantestuser",
-      password: "Tezsting! This is my bio!",
+      password: "test",
       color: "#89C1FF",
       iconUrl:
         "https://i.pinimg.com/236x/41/53/a8/4153a8d6d45dae78a9e51791ff15007f.jpg",
     },
-  })
+  ]
+
+  let createResult = await makeAuthenticatedQuery(createUserQuery, users[0])
 
   expect(createResult).toBeDefined()
-  expect(createResult.data.createUser.id).toEqual("3")
-  expect(createResult.data.createUser.token).toBeDefined()
+  expect(createResult.data.createUser.id).toEqual("1") // device id
+  expect(createResult.data.createUser.userId).toEqual("1") // user's id
+  expect(createResult.data.createUser.accessToken).toBeDefined()
+  expect(createResult.data.createUser.refreshToken).toBeDefined()
 
-  // User is needed on context, querying needs authorization
-  const contextValue = {
-    user: {
-      id: "1",
-    },
+  const queryResult = await makeAuthenticatedQuery(`
+    query User {
+      User(id: 1) { id name username }
+    }
+  `)
+
+  createResult = await makeAuthenticatedQuery(createUserQuery, users[1])
+
+  expect(createResult).toBeDefined()
+  expect(createResult.data.createUser.id).toEqual("2")
+  expect(createResult.data.createUser.userId).toEqual("2")
+  expect(createResult.data.createUser.refreshToken).toBeDefined()
+  expect(createResult.data.createUser.accessToken).toBeDefined()
+})
+
+const loginMutation = `
+  mutation loginUserWithEmail(
+    $email: String!
+    $password: String!
+    $deviceId: ID!
+  ) {
+    loginUserWithEmail(
+      email: $email
+      password: $password
+      deviceId: $deviceId
+    ) {
+      id
+      userId
+      refreshToken
+      accessToken
+    }
   }
+`
 
-  const createFriendRequestResult = await graphql({
-    source: createFriendRequestQuery,
-    schema,
-    rootValue: {},
-    contextValue,
-    variableValues: {
-      message: "Hello, World!",
-      fromUserId: "3",
-      toUserId: "2",
-    },
+test("New user should be able to log in and receive token", async () => {
+  const loginResult = await makeAuthenticatedQuery(loginMutation, {
+    email: "test@test.com",
+    deviceId: "1", // see create user test
+    password: "test",
   })
 
-  expect(createFriendRequestResult.data.createFriendRequest.id).toBeDefined()
+  expect(loginResult.data.loginUserWithEmail.id).toBeDefined()
+  expect(loginResult.data.loginUserWithEmail.userId).toBeDefined()
+  expect(loginResult.data.loginUserWithEmail.refreshToken).toBeDefined()
+  expect(loginResult.data.loginUserWithEmail.accessToken).toBeDefined()
+
+  const loginNoDeviceResult = await makeAuthenticatedQuery(loginMutation, {
+    email: "test@test.com",
+    deviceId: "", // see create user test
+    password: "test",
+  })
+
+  expect(loginNoDeviceResult.errors).toBeDefined()
+})
+
+const createDeviceMutation = `
+  mutation createNewDevice(
+    $name: String!
+    $password: String!
+  ) {
+    createNewDevice(
+      name: $name
+      password: $password
+    ) {
+      id
+      accessToken
+      refreshToken
+    }
+  }
+`
+
+test("Existing user should be able to log in with a newly created device", async () => {
+  // Create a new device that is associated with the current user
+
+  const createResult = await makeAuthenticatedQuery(createDeviceMutation, {
+    name: "Connors Macbook Pro",
+    password: "test",
+  })
+
+  expect(createResult.data.createNewDevice.id).toBeDefined()
+  expect(createResult.data.createNewDevice.accessToken).toBeDefined()
+  expect(createResult.data.createNewDevice.refreshToken).toBeDefined()
+
+  // Login mutation should work when using the ID of the newly
+  // created device
+
+  const loginResult = await makeAuthenticatedQuery(loginMutation, {
+    email: "test@test.com",
+    deviceId: createResult.data.createNewDevice.id, // see create user test
+    password: "test",
+  })
+
+  expect(loginResult.data.loginUserWithEmail.id).toBeDefined()
+  expect(loginResult.data.loginUserWithEmail.userId).toBeDefined()
+  expect(loginResult.data.loginUserWithEmail.refreshToken).toBeDefined()
+  expect(loginResult.data.loginUserWithEmail.accessToken).toBeDefined()
+})
+
+test("Existing user should only be able to login with devices they created", async () => {
+  // Create a new device that belongs to the second user (not first)
+
+  const createResult = await makeAuthenticatedQuery(
+    createDeviceMutation,
+    {
+      name: "Not Connors Macbook Pro",
+      password: "test",
+    },
+    {
+      user: { id: 2 },
+    }
+  )
+
+  expect(createResult.data.createNewDevice.id).toBeDefined()
+  expect(createResult.data.createNewDevice.accessToken).toBeDefined()
+  expect(createResult.data.createNewDevice.refreshToken).toBeDefined()
+
+  // Attempt to login the first user with the second user's device ID
+  // This should not work and should result in an error
+
+  const loginResult = await makeAuthenticatedQuery(loginMutation, {
+    email: "test@test.com",
+    deviceId: createResult.data.createNewDevice.id,
+    password: "test",
+  })
+
+  expect(loginResult.errors).toBeDefined()
+  expect(loginResult.data.createNewDevice).toBeUndefined()
+})
+
+test("Send new friend request", async () => {
+  const createFriendRequestResult = await makeAuthenticatedQuery(
+    createFriendRequestQuery,
+    {
+      message: "Hello, World!",
+      fromUserId: "2",
+      toUserId: "1",
+    }
+  )
+
+  expect(createFriendRequestResult.data.createFriendRequest.id).toBe("1")
 })
 
 test("Receive a new friend request and accept", async () => {
   // The first  user should see this friend request when querying
   const friendRequestQuery = `
     query friendRequest {
-      User(id: "2") {
+      User(id: "1") {
         friendRequests {
           fromUser { id }
           toUser { id }
@@ -221,8 +295,8 @@ test("Receive a new friend request and accept", async () => {
   // from user id should be that of the second user
 
   expect(firstUsersFriendRequests).toBeDefined()
-  expect(request.fromUser.id).toEqual("3")
-  expect(request.toUser.id).toEqual("2")
+  expect(request.fromUser.id).toEqual("2")
+  expect(request.toUser.id).toEqual("1")
   expect(request.message).toEqual("Hello, World!")
 
   const acceptFriendRequestResult = await makeAuthenticatedQuery(
@@ -233,7 +307,7 @@ test("Receive a new friend request and accept", async () => {
 
   const firstUserQuery = `
     query User {
-      User(id: "2") {
+      User(id: "1") {
         friends {
           id
         }
@@ -243,7 +317,7 @@ test("Receive a new friend request and accept", async () => {
 
   const secondUserQuery = `
     query User {
-      User(id: "3") {
+      User(id: "2") {
         friends {
           id
         }
@@ -255,15 +329,12 @@ test("Receive a new friend request and accept", async () => {
   const secondUserResult = await makeAuthenticatedQuery(secondUserQuery)
 
   // Ensure that now they are on each other's friend list
-  // Ensure that mixbot is on both friends lists
 
-  expect(firstUserResult.data.User.friends.length).toBe(2)
-  expect(firstUserResult.data.User.friends[0].id).toBe("1")
-  expect(firstUserResult.data.User.friends[1].id).toBe("3")
+  expect(firstUserResult.data.User.friends.length).toBe(1)
+  expect(firstUserResult.data.User.friends[0].id).toBe("2")
 
-  expect(secondUserResult.data.User.friends.length).toBe(2)
+  expect(secondUserResult.data.User.friends.length).toBe(1)
   expect(secondUserResult.data.User.friends[0].id).toBe("1")
-  expect(secondUserResult.data.User.friends[1].id).toBe("2")
 
   // TODO: Ensure that a third user who is new has an empty array of friends
 })
@@ -271,7 +342,7 @@ test("Receive a new friend request and accept", async () => {
 test("Two new friends are in a direct message group", async () => {
   const firstUserQuery = `
     query User {
-      User(id: "2") {
+      User(id: "1") {
         groups {
           id
           name
@@ -286,7 +357,7 @@ test("Two new friends are in a direct message group", async () => {
 
   const secondUserQuery = `
     query User {
-      User(id: "3") {
+      User(id: "2") {
         groups {
           id
           name
@@ -305,14 +376,13 @@ test("Two new friends are in a direct message group", async () => {
   // Ensure that now they are on each other's friend list
   // and that they are in a group together
 
-  expect(firstUserResult.data.User.groups.length).toBe(2) // friend + mixbot
+  expect(firstUserResult.data.User.groups.length).toBe(1)
   expect(firstUserResult.data.User.groups[0].id).toBe("1")
-  expect(firstUserResult.data.User.groups[1].id).toBe("3") // two mixbot chats + friend chat === 3 id
   expect(firstUserResult.data.User.groups[0].name).toBe("friend")
   expect(firstUserResult.data.User.groups[0].isDirectMessage).toBe(true)
   expect(firstUserResult.data.User.groups[0].members.length).toBe(2)
 
-  expect(secondUserResult.data.User.groups.length).toBe(2) // friend + mixbot
+  expect(secondUserResult.data.User.groups.length).toBe(1)
 })
 
 test("A user's relevantUsers include their friends", async () => {
@@ -332,8 +402,7 @@ test("A user's relevantUsers include their friends", async () => {
   // TODO: Fix bug here because relevantUsers algorithm doesnt purge dupes
 
   // expect(relevantUsersResult.data.relevantUsers.length).toBe(2) // broke, has dupes
-  expect(relevantUsersResult.data.relevantUsers[0].id).toBe("1")
-  expect(relevantUsersResult.data.relevantUsers[1].id).toBe("3")
+  expect(relevantUsersResult.data.relevantUsers[0].id).toBe("2")
 })
 
 test("A user sends messages to a group's chat", async () => {
@@ -355,10 +424,9 @@ test("A user sends messages to a group's chat", async () => {
   const resultGroups = result.data.User.groups
 
   expect(resultGroups[0].id).toBe("1")
-  expect(resultGroups[1].id).toBe("3")
-  expect(resultGroups[1].chats.length).toBe(2)
+  expect(resultGroups[0].chats.length).toBe(2)
 
-  const chatId = resultGroups[1].chats[0].id
+  const chatId = resultGroups[0].chats[0].id
 
   await makeAuthenticatedQuery(createMessageQuery, {
     type: "remix/text",
@@ -374,7 +442,7 @@ test("A user sends messages to a group's chat", async () => {
       chatId,
     },
     {
-      user: { id: "3" },
+      user: { id: "2" },
     }
   )
 
@@ -386,7 +454,7 @@ test("A user sends messages to a group's chat", async () => {
       chatId,
     },
     {
-      user: { id: "3" },
+      user: { id: "2" },
     }
   )
 
@@ -398,7 +466,7 @@ test("A user sends messages to a group's chat", async () => {
       chatId,
     },
     {
-      user: { id: "3" },
+      user: { id: "2" },
     }
   )
 
@@ -410,7 +478,7 @@ test("A user sends messages to a group's chat", async () => {
       chatId,
     },
     {
-      user: { id: "3" },
+      user: { id: "2" },
     }
   )
 
@@ -418,7 +486,7 @@ test("A user sends messages to a group's chat", async () => {
 
   const secondUserQuery = `
     query User {
-      User(id: "3") {
+      User(id: "2") {
         groups {
           id
           chats {
@@ -440,22 +508,22 @@ test("A user sends messages to a group's chat", async () => {
 
   const secondUserResult = await makeAuthenticatedQuery(secondUserQuery)
   const groups = secondUserResult.data.User.groups
-  const chats = groups[1].chats
+  const chats = groups[0].chats
   const chatMessages = chats[0].messages
 
   console.log(chatMessages.map(m => m.content.data))
 
   expect(chatMessages.length).toBe(5)
-  expect(chatMessages[0].userId).toBe("2")
+  expect(chatMessages[0].userId).toBe("1")
   expect(chatMessages[0].content.data.text).toBe("hello")
-  expect(chatMessages[1].userId).toBe("3")
+  expect(chatMessages[1].userId).toBe("2")
   expect(chatMessages[1].content.data.text).toBe("second message")
 })
 
 test("A user should query allMessages to get recent messages", async () => {
   const allMessagesQuery = `
     query User {
-      User(id: "2") {
+      User(id: "1") {
         allMessages {
           id
           chatId
@@ -558,10 +626,10 @@ test("Unread messages should be messages (from chats you are a member of) create
   const messageResult = await makeAuthenticatedQuery(messageQuery)
 
   const groups = messageResult.data.User.groups
-  const chat = groups[1].chats[0]
+  const chat = groups[0].chats[0]
   const messages = chat.messages
 
-  // In the second user's second group's first chat,
+  // In the second user's first group's first chat,
   // there will be five messages.
 
   expect(messages.length).toBe(5)
@@ -577,7 +645,7 @@ test("Unread messages should be messages (from chats you are a member of) create
   // Set user "2" (on context) read position in the second
   // group's first chat. Set that they've read the first message.
 
-  // Update the second user's read position in the second group's
+  // Update the second user's read position in the first group's
   // first chat. The read position's `forMessageId` is the ID of
   // the first message in said chat.
 

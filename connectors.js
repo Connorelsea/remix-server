@@ -26,6 +26,20 @@ export const User = db.define("user", {
   phone_number: Sequelize.STRING,
 })
 
+// An activity object (stream) could have a relation
+// to a Device from which device the most recent
+// activity was from
+
+export const Device = db.define("device", {
+  name: Sequelize.STRING,
+  valid: Sequelize.BOOLEAN,
+  refreshToken: Sequelize.STRING,
+  accessToken: Sequelize.STRING,
+})
+
+User.belongsToMany(Device, { through: "UserDevices" })
+Device.hasOne(User, { through: "UserDevices" })
+
 export const Group = db.define("group", {
   iconUrl: Sequelize.STRING,
   name: Sequelize.STRING,

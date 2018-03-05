@@ -47,6 +47,7 @@ const gqlkoa = graphqlKoa(ctx => ({
   schema,
   context: { ...ctx },
   formatError: (error, ctx) => ({
+    error: JSON.stringify(error),
     message: error.message,
     locations: error.locations,
     stack: error.stack,

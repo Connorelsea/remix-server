@@ -9,6 +9,7 @@ import {
   ReadPosition,
   Group,
   Chat,
+  Device,
 } from "../connectors"
 
 import jwt from "jsonwebtoken"
@@ -19,17 +20,26 @@ import { Op, col } from "sequelize"
 import { createError } from "apollo-errors"
 import { resolver } from "graphql-sequelize"
 
+import { genAccessToken, genRefreshToken } from "../utils/token"
+
 const getHash = password => bcrypt.hashSync(password, 10)
-const getToken = payload => jwt.sign(payload, "secretText", { expiresIn: 1440 })
 
 const createUser = baseResolver.createResolver(
-  async (
-    root,
-    { name, username, password, description, email, color, iconUrl },
-    context,
-    error
-  ) => {
+  async (root, args, context, error) => {
+    const {
+      name,
+      username,
+      password,
+      description,
+      email,
+      color,
+      iconUrl,
+      deviceName,
+    } = args
+
     let hash = getHash(password)
+
+    // Create new user
 
     let user = await User.create({
       name,
@@ -41,68 +51,37 @@ const createUser = baseResolver.createResolver(
       iconUrl,
     })
 
-    const mixbot = await User.findOne({
-      where: { username: "mixbot" },
-    })
-    user.addFriend(mixbot)
-    mixbot.addFriend(user)
+    // Create a new initial default device for the new user
+    // Creat access and refresh tokens for this device
 
-    const newGroup = await Group.create({
-      name: "friend",
-      description: `A great friendship`,
-      isDirectMessage: true,
+    let device = await Device.create({
+      name: "Default Device",
+      valid: true,
+      accessToken: genAccessToken({ userId: user.id }),
+      refreshToken: genRefreshToken({ userId: user.id }),
     })
 
-    console.log("NEW GROUP")
-    console.log(newGroup)
+    // Set correct relations for device join
 
-    newGroup.addMember(user)
-    newGroup.addMember(mixbot)
-
-    const newChat = await Chat.create({
-      name: "support",
-      description: "Need help with Remix? Ask here",
-    })
-
-    const secondChat = await Chat.create({
-      name: "bugs",
-      description: "Report bugs and get feedback",
-    })
-
-    const thirdChat = await Chat.create({
-      name: "saved",
-      description: "Save messages and attachments privately",
-    })
-
-    const fourthChat = await Chat.create({
-      name: "updates",
-      description: "Announcements and updates about Remix",
-    })
-
-    newGroup.addChat(newChat)
-    newChat.setGroup(newGroup)
-
-    newGroup.addChat(secondChat)
-    secondChat.setGroup(newGroup)
-
-    newGroup.addChat(thirdChat)
-    thirdChat.setGroup(newGroup)
-
-    newGroup.addChat(fourthChat)
-    fourthChat.setGroup(newGroup)
-
-    console.log("CREATED NEW USER ")
-    console.log(JSON.stringify(user))
+    device.setUser(user)
+    user.addDevice(device)
 
     return {
-      id: user.id,
-      token: getToken({ userId: user.id }),
+      userId: user.id,
+      id: device.id,
+      accessToken: device.accessToken,
+      refreshToken: device.refreshToken,
     }
   }
 )
 
 const UserDoesntExistError = createError("UserDoesntExist", {
+  name: "User Doesnt Exist Error",
   message: "A user with this email address does not exist",
+})
+
+const DeviceDoesntExistError = createError("DeviceDoesntExist", {
+  message: "A device with this ID does not exist",
 })
 
 const WrongPasswordError = createError("WrongPassword", {
@@ -110,12 +89,91 @@ const WrongPasswordError = createError("WrongPassword", {
 })
 
 const loginUserWithEmail = baseResolver.createResolver(
-  async (root, { email, password }, context, error) => {
+  async (root, args, context, error) => {
+    const { email, password, deviceId } = args
+
+    // Check if a user exists with the given email address
+
     const user = await User.find({
       where: { email: { [Op.like]: email.toLowerCase() } },
     })
-    if (!user) return new UserDoesntExistError()
-    return loginUser(user, password)
+
+    if (!user) throw new UserDoesntExistError()
+
+    // Check if the device the user is attempting to login
+    // with exists
+
+    let device
+
+    if (deviceId || deviceId.trim() !== "") {
+      // Attempt to find device with given ID
+
+      device = await Device.find({
+        where: {
+          id: deviceId,
+        },
+      })
+
+      if (!device) throw new DeviceDoesntExistError()
+
+      // Attempt to find the device's user
+
+      let deviceUser = await device.getUser()
+
+      // If the device's user does not match the ID of the
+      // user current attempting to login
+
+      if (user.id !== deviceUser.id) {
+        throw new DeviceDoesntExistError()
+      }
+    }
+
+    if (!device) throw new DeviceDoesntExistError()
+
+    // If the user exists, check if their password is correct and matches
+    // the stored hashed password
+
+    const correctPassword = await bcrypt.compare(password, user.password)
+    if (!correctPassword) throw new WrongPasswordError()
+
+    // Retun the user id and device info (tokens)
+
+    return {
+      userId: user.id,
+      id: device.id,
+      accessToken: device.accessToken,
+      refreshToken: device.refreshToken,
+    }
+  }
+)
+
+const createNewDevice = isAuthenticatedResolver.createResolver(
+  async (root, args, context, error) => {
+    const { name = "New Device", password } = args
+
+    // Find user who's ID is on the context. This is the user
+    // that the newly created device wil be associated with.
+
+    const user = await User.findOne({ where: { id: context.user.id } })
+
+    const correctPassword = await bcrypt.compare(password, user.password)
+    if (!correctPassword) throw new WrongPasswordError()
+
+    let device
+
+    device = await Device.create({
+      name,
+      valid: true,
+      accessToken: genAccessToken({ userId: user.id }),
+      refreshToken: genRefreshToken({ userId: user.id }),
+    })
+
+    // Set correct relations for device join
+
+    device.setUser(user)
+    user.addDevice(device)
+
+    return device
   }
 )
 
@@ -300,6 +358,7 @@ export default {
   Mutation: {
     createUser,
     loginUserWithEmail,
+    createNewDevice,
   },
   Query: {
     users: searchUsers,

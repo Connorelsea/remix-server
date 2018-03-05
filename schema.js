@@ -34,6 +34,15 @@ type User {
   currentReadPositions: [ReadPosition]
 }
 
+type Device {
+  id: ID!
+  userId: ID!
+  name: String
+  valid: Boolean
+  refreshToken: String
+  accessToken: String
+}
+
 type ReadPosition {
   id: ID!
   userId: ID!
@@ -110,17 +119,18 @@ type Mutation {
     description: String,
     color: String,
     iconUrl: String
-  ): User
+  ): Device
 
   loginUserWithEmail(
-    email: String!,
+    deviceId: ID!
+    email: String!
     password: String!
-  ): User
+  ): Device
 
-  loginUserWithPhone(
-    phone_number: String!,
+  createNewDevice(
+    name: String!
     password: String!
-  ): User
+  ): Device
 
   createGroup(
     name: String,

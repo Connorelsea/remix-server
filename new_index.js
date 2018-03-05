@@ -47,6 +47,8 @@ app.use(function(req, res, next) {
 
   console.log("TOKEN GOT", token)
 
+  if (token === null) return next()
+
   try {
     const payload = checkToken(token)
 
@@ -70,6 +72,8 @@ const UnknownError = createError("UnknownError", {
   message: "An unknown error has occurred.  Please try again later",
 })
 
+// Start graphql
+
 const formatError = error => {
   let e = apolloFormatError(error)
 
@@ -84,10 +88,8 @@ const formatError = error => {
     )
   }
 
-  return e
+  return { ...e }
 }
-
-// Start graphql
 
 app.use(
   "/graphql",
@@ -98,12 +100,7 @@ app.use(
     tracing: true,
     cacheControl: true,
     context: { user: request.user },
-    formatError: (error, ctx) => ({
-      message: error.message,
-      locations: error.locations,
-      stack: error.stack,
-      path: error.path,
-    }),
+    formatError,
   }))
 )
 
