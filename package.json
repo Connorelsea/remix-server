@@ -4,8 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start":
-      "nodemon --inspect new_index.js --exec babel-node --presets es2015,stage-2",
+    "start": "nodemon --inspect new_index.js --exec babel-node --presets es2015,stage-2",
     "test": "jest --coverage --forceExit",
     "test:watch": "jest --watch --coverage"
   },
@@ -25,12 +24,13 @@
     "compression": "^1.7.1",
     "cors": "^2.8.4",
     "dotenv": "^5.0.0",
-    "express": "^4.16.2",
-    "express-graphql": "^0.6.11",
-    "graphql": "^0.12.3",
+    "express": "^4.16.3",
+    "express-graphql": "^0.6.12",
+    "graphql": "^0.13.1",
+    "graphql-relay": "^0.5.4",
     "graphql-sequelize": "^5.6.1",
     "graphql-subscriptions": "^0.5.6",
-    "graphql-tools": "^2.18.0",
+    "graphql-tools": "^2.22.0",
     "graphql-type-json": "^0.1.4",
     "http": "^0.0.0",
     "jsonwebtoken": "^8.1.0",
@@ -53,7 +53,13 @@
   "jest": {
     "verbose": false,
     "testEnvironment": "node",
-    "testPathIgnorePatterns": ["/node_modules/", "./dist"],
-    "coverageReporters": ["lcov", "html"]
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "./dist"
+    ],
+    "coverageReporters": [
+      "lcov",
+      "html"
+    ]
   }
 }

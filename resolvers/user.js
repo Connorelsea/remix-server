@@ -75,12 +75,23 @@ const createUser = baseResolver.createResolver(
   }
 )
 
+const getDeviceUser = baseResolver.createResolver(
+  async (root, args, context, error) => {
+    const { userId } = root
+    return User.findOne({ where: { id: userId } })
+  }
+)
+
 const UserDoesntExistError = createError("UserDoesntExist", {
   message: "A user with this email address does not exist",
 })
 
 const DeviceDoesntExistError = createError("DeviceDoesntExist", {
   message: "A device with this ID does not exist",
+})
+
+const WrongDeviceError = createError("WrongDevice", {
+  message: "This device is not associated with this user",
 })
 
 const WrongPasswordError = createError("WrongPassword", {
@@ -123,11 +134,9 @@ const loginUserWithEmail = baseResolver.createResolver(
       // user current attempting to login
 
       if (user.id !== deviceUser.id) {
-        throw new DeviceDoesntExistError()
+        throw new WrongDeviceError()
       }
     }
-
-    if (!device) throw new DeviceDoesntExistError()
 
     // If the user exists, check if their password is correct and matches
     // the stored hashed password
@@ -361,6 +370,9 @@ export default {
     createUser,
     loginUserWithEmail,
     createNewDevice,
+  },
+  Device: {
+    user: getDeviceUser,
   },
   Query: {
     users: searchUsers,

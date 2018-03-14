@@ -34,7 +34,11 @@ const createUserQuery = `
       iconUrl: $iconUrl
     ) {
       id
-      userId
+      user {
+        id
+        name
+        email
+      }
       refreshToken
       accessToken
     }
@@ -124,9 +128,12 @@ test("Create and query a new user", async () => {
 
   let createResult = await makeAuthenticatedQuery(createUserQuery, users[0])
 
+  console.log("CREATE RESULT", JSON.stringify(createResult))
+
   expect(createResult).toBeDefined()
   expect(createResult.data.createUser.id).toEqual("1") // device id
-  expect(createResult.data.createUser.userId).toEqual("1") // user's id
+  expect(createResult.data.createUser.user).toBeDefined()
+  expect(createResult.data.createUser.user.id).toEqual("1") // user's id
   expect(createResult.data.createUser.accessToken).toBeDefined()
   expect(createResult.data.createUser.refreshToken).toBeDefined()
 
@@ -140,7 +147,8 @@ test("Create and query a new user", async () => {
 
   expect(createResult).toBeDefined()
   expect(createResult.data.createUser.id).toEqual("2")
-  expect(createResult.data.createUser.userId).toEqual("2")
+  expect(createResult.data.createUser.user).toBeDefined()
+  expect(createResult.data.createUser.user.id).toEqual("2") // user's id
   expect(createResult.data.createUser.refreshToken).toBeDefined()
   expect(createResult.data.createUser.accessToken).toBeDefined()
 })
@@ -157,7 +165,9 @@ const loginMutation = `
       deviceId: $deviceId
     ) {
       id
-      userId
+      user {
+        id
+      }
       refreshToken
       accessToken
     }
@@ -172,7 +182,8 @@ test("New user should be able to log in and receive token", async () => {
   })
 
   expect(loginResult.data.loginUserWithEmail.id).toBeDefined()
-  expect(loginResult.data.loginUserWithEmail.userId).toBeDefined()
+  expect(loginResult.data.loginUserWithEmail.user).toBeDefined()
+  expect(loginResult.data.loginUserWithEmail.user.id).toEqual("1")
   expect(loginResult.data.loginUserWithEmail.refreshToken).toBeDefined()
   expect(loginResult.data.loginUserWithEmail.accessToken).toBeDefined()
 
@@ -223,7 +234,8 @@ test("Existing user should be able to log in with a newly created device", async
   })
 
   expect(loginResult.data.loginUserWithEmail.id).toBeDefined()
-  expect(loginResult.data.loginUserWithEmail.userId).toBeDefined()
+  expect(loginResult.data.loginUserWithEmail.user).toBeDefined()
+  expect(loginResult.data.loginUserWithEmail.user.id).toEqual("1")
   expect(loginResult.data.loginUserWithEmail.refreshToken).toBeDefined()
   expect(loginResult.data.loginUserWithEmail.accessToken).toBeDefined()
 })

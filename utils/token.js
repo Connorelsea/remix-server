@@ -24,7 +24,7 @@ import jwt from "jsonwebtoken"
 // public device.
 
 export const genAccessToken = payload =>
-  jwt.sign(payload, "secretText", { expiresIn: "2h" })
+  jwt.sign(payload, "secretText", { expiresIn: "6m" })
 
 export const genRefreshToken = payload =>
   jwt.sign(payload, "secretText", { expiresIn: "75h" })

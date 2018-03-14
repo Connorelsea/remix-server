@@ -35,10 +35,33 @@ export const Device = db.define("device", {
   valid: Sequelize.BOOLEAN,
   refreshToken: Sequelize.STRING,
   accessToken: Sequelize.STRING,
+
+  operatingSystem: Sequelize.STRING,
+  browser: Sequelize.STRING,
+  cpu: Sequelize.STRING,
+  gpu: Sequelize.STRING,
+
+  // Settings
+  trackActivityLocation: Sequelize.BOOLEAN,
+  retainActivityHistoryForTime: Sequelize.STRING,
 })
 
 User.belongsToMany(Device, { through: "UserDevices" })
 Device.hasOne(User, { through: "UserDevices" })
+
+const ActivityTypes = ["online", "inactive", "offline"]
+
+export const Activity = db.define("activity", {
+  type: Sequelize.ENUM(...ActivityTypes),
+  downloadSpeed: Sequelize.STRING,
+  batteryLevel: Sequelize.STRING,
+  latitude: Sequelize.STRING,
+  longitude: Sequelize.STRING,
+})
+
+User.belongsTo(Device, { through: "DeviceActivities" })
+Activity.belongsTo(Device, { through: "DeviceActivities" })
+Device.belongsToMany(Activity, { through: "DeviceActivites" })
 
 export const Group = db.define("group", {
   iconUrl: Sequelize.STRING,

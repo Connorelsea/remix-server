@@ -23,6 +23,7 @@ type User {
   id: ID!
   token: String
   name: String
+  email: String
   username: String
   description: String
   iconUrl: String
@@ -36,7 +37,7 @@ type User {
 
 type Device {
   id: ID!
-  userId: ID!
+  user: User
   name: String
   valid: Boolean
   refreshToken: String
@@ -108,6 +109,8 @@ type Query {
   relevantUsers: [User]
   relevantReadPositions: [ReadPosition]
   unreadMessages: [Message]
+
+  
 }
 
 type Mutation {
@@ -119,6 +122,12 @@ type Mutation {
     description: String
     color: String
     iconUrl: String
+  ): Device
+
+  loginWithNewDevice(
+    email: String!
+    password: String!
+    deviceName: String
   ): Device
 
   loginUserWithEmail(
