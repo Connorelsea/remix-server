@@ -154,12 +154,12 @@ test("Create and query a new user", async () => {
 })
 
 const loginMutation = `
-  mutation loginUserWithEmail(
+  mutation loginWithExistingDevice(
     $email: String!
     $password: String!
     $deviceId: ID!
   ) {
-    loginUserWithEmail(
+    loginWithExistingDevice(
       email: $email
       password: $password
       deviceId: $deviceId
@@ -181,11 +181,11 @@ test("New user should be able to log in and receive token", async () => {
     password: "test",
   })
 
-  expect(loginResult.data.loginUserWithEmail.id).toBeDefined()
-  expect(loginResult.data.loginUserWithEmail.user).toBeDefined()
-  expect(loginResult.data.loginUserWithEmail.user.id).toEqual("1")
-  expect(loginResult.data.loginUserWithEmail.refreshToken).toBeDefined()
-  expect(loginResult.data.loginUserWithEmail.accessToken).toBeDefined()
+  expect(loginResult.data.loginWithExistingDevice.id).toBeDefined()
+  expect(loginResult.data.loginWithExistingDevice.user).toBeDefined()
+  expect(loginResult.data.loginWithExistingDevice.user.id).toEqual("1")
+  expect(loginResult.data.loginWithExistingDevice.refreshToken).toBeDefined()
+  expect(loginResult.data.loginWithExistingDevice.accessToken).toBeDefined()
 
   const loginNoDeviceResult = await makeAuthenticatedQuery(loginMutation, {
     email: "test@test.com",
@@ -233,11 +233,54 @@ test("Existing user should be able to log in with a newly created device", async
     password: "test",
   })
 
-  expect(loginResult.data.loginUserWithEmail.id).toBeDefined()
-  expect(loginResult.data.loginUserWithEmail.user).toBeDefined()
-  expect(loginResult.data.loginUserWithEmail.user.id).toEqual("1")
-  expect(loginResult.data.loginUserWithEmail.refreshToken).toBeDefined()
-  expect(loginResult.data.loginUserWithEmail.accessToken).toBeDefined()
+  expect(loginResult.data.loginWithExistingDevice.id).toBeDefined()
+  expect(loginResult.data.loginWithExistingDevice.user).toBeDefined()
+  expect(loginResult.data.loginWithExistingDevice.user.id).toEqual("1")
+  expect(loginResult.data.loginWithExistingDevice.refreshToken).toBeDefined()
+  expect(loginResult.data.loginWithExistingDevice.accessToken).toBeDefined()
+})
+
+test("Existing user should be able to login using a new device implicitly", async () => {
+  const loginWithNewDeviceSource = `
+    mutation loginWithNewDevice(
+      $email: String!
+      $password: String!
+      $deviceName: String
+      $operatingSystem: String!
+      $browser: String!
+      $cpu: String!
+      $gpu: String!
+    ) {
+      loginWithNewDevice(
+        email: $email
+        password: $password
+        deviceName: $deviceName
+        operatingSystem: $operatingSystem
+        browser: $browser
+        cpu: $cpu
+        gpu: $gpu
+      ) {
+        id
+        accessToken
+        refreshToken
+        name
+      }
+    }
+  `
+
+  const loginResult = await makeAuthenticatedQuery(loginWithNewDeviceSource, {
+    email: "test@test.com",
+    password: "test",
+    operatingSystem: "MacOS",
+    browser: "Chrome",
+    cpu: "Intel",
+    gpu: "Intel",
+  })
+
+  expect(loginResult.data.loginWithNewDevice.name).toBe("Unamed Device")
+  expect(loginResult.data.loginWithNewDevice.id).toBeDefined()
+  expect(loginResult.data.loginWithNewDevice.accessToken).toBeDefined()
+  expect(loginResult.data.loginWithNewDevice.refreshToken).toBeDefined()
 })
 
 test("Existing user should only be able to login with devices they created", async () => {

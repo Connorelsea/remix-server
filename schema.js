@@ -127,13 +127,19 @@ type Mutation {
   loginWithNewDevice(
     email: String!
     password: String!
-    deviceName: String
+
+    # Device meta needed for device creation
+    deviceName: String # Optional, defaults to "Unamed Device"
+    operatingSystem: String!
+    browser: String!
+    cpu: String!
+    gpu: String!
   ): Device
 
-  loginUserWithEmail(
-    deviceId: ID!
+  loginWithExistingDevice(
     email: String!
     password: String!
+    deviceId: ID!
   ): Device
 
   createNewDevice(

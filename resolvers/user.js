@@ -98,7 +98,7 @@ const WrongPasswordError = createError("WrongPassword", {
   message: "Your password is incorrect, try again",
 })
 
-const loginUserWithEmail = baseResolver.createResolver(
+const loginWithExistingDevice = baseResolver.createResolver(
   async (root, args, context, error) => {
     const { email, password, deviceId } = args
 
@@ -152,6 +152,50 @@ const loginUserWithEmail = baseResolver.createResolver(
       accessToken: device.accessToken,
       refreshToken: device.refreshToken,
     }
+  }
+)
+
+const loginWithNewDevice = baseResolver.createResolver(
+  async (root, args, context, error) => {
+    const {
+      email,
+      password,
+      deviceName = "Unamed Device",
+      operatingSystem,
+      browser,
+      cpu,
+      gpu,
+    } = args
+
+    // Check if a user exists with the given email address
+
+    const user = await User.find({
+      where: { email: { [Op.like]: email.toLowerCase() } },
+    })
+
+    if (!user) throw new UserDoesntExistError()
+
+    // If the user exists, check if their password is correct and matches
+    // the stored hashed password
+
+    const correctPassword = await bcrypt.compare(password, user.password)
+    if (!correctPassword) throw new WrongPasswordError()
+
+    // Create new device with given meta
+
+    const newDevice = await Device.create({
+      accessToken: genAccessToken({ userId: user.id }),
+      refreshToken: genRefreshToken({ userId: user.id }),
+      name: deviceName,
+      operatingSystem,
+      browser,
+      cpu,
+      gpu,
+      trackActivityLocation: false,
+      retainActivityHistoryForTime: "40h",
+    })
+
+    return newDevice
   }
 )
 
@@ -368,7 +412,8 @@ const getCurrentReadPositions = isAuthenticatedResolver.createResolver(
 export default {
   Mutation: {
     createUser,
-    loginUserWithEmail,
+    loginWithExistingDevice,
+    loginWithNewDevice,
     createNewDevice,
   },
   Device: {
