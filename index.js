@@ -1,95 +1,125 @@
-import koa from "koa" // koa@2
-import koaRouter from "koa-router" // koa-router@next
-import koaBody from "koa-bodyparser" // koa-bodyparser@next
-import { graphqlKoa, graphiqlKoa } from "apollo-server-koa"
+import express from "express";
+import { graphqlExpress, graphiqlExpress } from "apollo-server-express";
+import { Engine } from "apollo-engine";
+import bodyParser from "body-parser";
+import cors from "cors";
+import compression from "compression";
+import schema from "./schema";
+import { checkToken } from "./utils/token";
+import { formatError, createError } from "apollo-errors";
+import { createServer } from "http";
+import { SubscriptionServer } from "subscriptions-transport-ws";
+import { execute, subscribe, GraphQLError } from "graphql";
 
-import schema from "./schema"
+require("dotenv").config();
 
-import { checkToken } from "./utils/token"
-import { execute, subscribe } from "graphql"
-import { createServer } from "http"
-import { SubscriptionServer } from "subscriptions-transport-ws"
+const PORT = process.env.PORT || 8080;
 
-const app = new koa()
-const router = new koaRouter()
-const PORT = process.env.PORT || 8080
+let engine;
 
-import respond from "koa-respond"
+export function startApolloEngine() {
+  // Initialize Apollo Engine
 
-import cors from "kcors"
-
-function userIdentifier() {
-  return async (ctx, next) => {
-    const token = ctx.request.headers.authorization
-
-    try {
-      const payload = checkToken(token)
-      ctx.user = {
-        id: payload.userId,
-        exp: payload.exp,
-        iat: payload.iat,
-      }
-    } catch (error) {
-      console.log("CANT GET USER")
-      console.log(ctx.request)
-      console.log(error)
-      // ctx.user = undefined
-      // ctx.throw(401, { error: "access_denied " })
-      // ctx.unauthorized()
-      // throw new Error("access_denied")
+  engine = new Engine({
+    graphqlPort: PORT,
+    engineConfig: {
+      apiKey: process.env.APOLLO_ENGINE
     }
+  });
 
-    await next()
-  }
+  engine.start();
 }
 
-const gqlkoa = graphqlKoa(ctx => ({
-  schema,
-  context: { ...ctx },
-  formatError: (error, ctx) => ({
-    error: JSON.stringify(error),
-    message: error.message,
-    locations: error.locations,
-    stack: error.stack,
-    path: error.path,
-  }),
-}))
+export function startExpressApp() {
+  // Initialize Express Server
+  const app = express();
 
-var logger = require("koa-logger")
+  // Middleware for Apollo Engine tracing has to be first
+  app.use(engine.expressMiddleware());
+  // Use GZIP on requests
+  app.use(compression());
+  app.use(cors({ origin: "*" }));
+  // Enable user context-
 
-// koaBody is needed just for POST.
-router.post("/graphql", koaBody(), gqlkoa)
-router.get("/graphql", gqlkoa)
+  app.use(function(req, res, next) {
+    const token = req.get("authorization");
 
-router.get("/graphiql", graphiqlKoa({ endpointURL: "/graphql" }))
+    if (token == "null" || !token) return next();
 
-app.use(
-  cors({
-    origin: "*",
-  })
-)
-app.use(logger())
-app.use(respond())
-app.use(userIdentifier())
-app.use(router.routes())
-app.use(router.allowedMethods())
-// app.listen(PORT)
+    try {
+      const payload = checkToken(token);
 
-// Wrap the Express server
-const ws = createServer(app.callback())
-
-ws.listen(PORT, () => {
-  console.log(`GraphQL Server is now running on http://localhost:${PORT}`)
-  // Set up the WebSocket for handling GraphQL subscriptions
-  new SubscriptionServer(
-    {
-      execute,
-      subscribe,
-      schema,
-    },
-    {
-      server: ws,
-      path: "/subscriptions",
+      req.user = {
+        id: payload.userId,
+        exp: payload.exp,
+        iat: payload.iat
+      };
+    } catch (err) {
+      console.error(err);
+      console.log("CANT GET USER");
     }
-  )
-})
+
+    next();
+  });
+
+  // Error formatting
+
+  const UnknownError = createError("UnknownError", {
+    message: "An unknown error has occurred.  Please try again later"
+  });
+
+  // Start graphql
+
+  app.use(
+    "/graphql",
+    bodyParser.json(),
+    graphqlExpress(request => ({
+      schema,
+      debug: true,
+      tracing: true,
+      cacheControl: true,
+      context: { user: request.user },
+      formatError
+    }))
+  );
+
+  app.get("/graphiql", graphiqlExpress({ endpointURL: "/graphql" }));
+
+  // app.listen(PORT);
+
+  const ws = createServer(app);
+
+  ws.listen(PORT, () => {
+    console.log(`GraphQL Server is now running on http://localhost:${PORT}`);
+    // Set up the WebSocket for handling GraphQL subscriptions
+    new SubscriptionServer(
+      {
+        execute,
+        subscribe,
+        schema,
+        onConnect: (connectionParams, webSocket) => {
+          let req = {};
+
+          console.log(webSocket);
+
+          console.log("ON CONNECT");
+          console.log(connectionParams);
+
+          return checkToken(connectionParams.token, function(payload) {
+            return {
+              user: {
+                id: payload.userId,
+                exp: payload.exp,
+                iat: payload.iat
+              }
+            };
+          });
+        }
+      },
+      {
+        server: ws,
+        path: "/subscriptions"
+      }
+    );
+  });
+}

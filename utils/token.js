@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken"
+import jwt from "jsonwebtoken";
 
 // Access Token
 // Used when the user wants to acces material on the server
@@ -24,10 +24,10 @@ import jwt from "jsonwebtoken"
 // public device.
 
 export const genAccessToken = payload =>
-  jwt.sign(payload, "secretText", { expiresIn: "6m" })
+  jwt.sign(payload, "secretText", { expiresIn: "30s" });
 
 export const genRefreshToken = payload =>
-  jwt.sign(payload, "secretText", { expiresIn: "75h" })
+  jwt.sign(payload, "secretText", { expiresIn: "5m" });
 
 export const checkToken = (token, callback) =>
-  jwt.verify(token, "secretText", {}, callback)
+  jwt.verify(token, "secretText", {}, callback);

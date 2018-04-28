@@ -1,6 +1,6 @@
-import { makeExecutableSchema, addMockFunctionsToSchema } from "graphql-tools"
+import { makeExecutableSchema, addMockFunctionsToSchema } from "graphql-tools";
 // import mocks from "./mocks"
-import resolvers from "./resolvers"
+import resolvers from "./resolvers";
 
 const typeDefs = `
 
@@ -110,19 +110,12 @@ type Query {
   relevantReadPositions: [ReadPosition]
   unreadMessages: [Message]
 
-  
+  getUsers(users: [ID!]!): [User]
 }
 
 type Mutation {
-  createUser(
-    email: String
-    username: String
-    password: String
-    name: String
-    description: String
-    color: String
-    iconUrl: String
-  ): Device
+
+  # User Device Management
 
   loginWithNewDevice(
     email: String!
@@ -145,6 +138,42 @@ type Mutation {
   createNewDevice(
     name: String!
     password: String!
+  ): Device
+
+  # Access and Refresh Token Handling
+
+  getNewAccessToken(
+    refreshToken: String!
+  ): Device
+
+  getNewRefreshToken(
+    refreshToken: String!
+    email: String!
+    password: String!
+  ): Device
+
+  # Activity
+
+  newActivity(
+    type: String!
+
+    # Optional Activity Properties
+    downloadLevel: String
+    batteryLevel: String
+    latitude: String
+    longitude: String
+  ): Device
+
+  # Creation mutations
+
+  createUser(
+    email: String
+    username: String
+    password: String
+    name: String
+    description: String
+    color: String
+    iconUrl: String
   ): Device
 
   createGroup(
@@ -209,10 +238,10 @@ type Mutation {
     forMessageId: ID!
   ): ReadPosition
 }
-`
+`;
 
-const schema = makeExecutableSchema({ typeDefs, resolvers })
+const schema = makeExecutableSchema({ typeDefs, resolvers });
 
 // addMockFunctionsToSchema({ schema, mocks })
 
-export default schema
+export default schema;

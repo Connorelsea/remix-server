@@ -1,19 +1,19 @@
-import Sequelize from "sequelize"
-import bcrypt from "bcrypt"
+import Sequelize from "sequelize";
+import bcrypt from "bcrypt";
 
-let local = true
+let local = true;
 
-if (process.env.PORT !== undefined) local = false
+if (process.env.PORT !== undefined) local = false;
 
-console.log("RUNNING WITH LOCAL MODE SET TO " + local)
+console.log("RUNNING WITH LOCAL MODE SET TO " + local);
 
 export const db = local
   ? new Sequelize("remix", "", null, {
-      dialect: "postgres",
+      dialect: "postgres"
     })
   : new Sequelize(process.env.DATABASE_URL, {
-      dialect: "postgres",
-    })
+      dialect: "postgres"
+    });
 
 export const User = db.define("user", {
   iconUrl: Sequelize.STRING,
@@ -23,8 +23,8 @@ export const User = db.define("user", {
   password: Sequelize.STRING,
   description: Sequelize.TEXT,
   email: Sequelize.STRING,
-  phone_number: Sequelize.STRING,
-})
+  phone_number: Sequelize.STRING
+});
 
 // An activity object (stream) could have a relation
 // to a Device from which device the most recent
@@ -43,39 +43,39 @@ export const Device = db.define("device", {
 
   // Settings
   trackActivityLocation: Sequelize.BOOLEAN,
-  retainActivityHistoryForTime: Sequelize.STRING,
-})
+  retainActivityHistoryForTime: Sequelize.STRING
+});
 
-User.belongsToMany(Device, { through: "UserDevices" })
-Device.hasOne(User, { through: "UserDevices" })
+User.belongsToMany(Device, { through: "UserDevices" });
+Device.belongsTo(User, { through: "UserDevices" });
 
-const ActivityTypes = ["online", "inactive", "offline"]
+const ActivityTypes = ["online", "inactive", "offline"];
 
 export const Activity = db.define("activity", {
   type: Sequelize.ENUM(...ActivityTypes),
   downloadSpeed: Sequelize.STRING,
   batteryLevel: Sequelize.STRING,
   latitude: Sequelize.STRING,
-  longitude: Sequelize.STRING,
-})
+  longitude: Sequelize.STRING
+});
 
-User.belongsTo(Device, { through: "DeviceActivities" })
-Activity.belongsTo(Device, { through: "DeviceActivities" })
-Device.belongsToMany(Activity, { through: "DeviceActivites" })
+// User.belongsTo(Device, { through: "DeviceActivities" });
+Activity.belongsTo(Device, { through: "DeviceActivities" });
+Device.belongsToMany(Activity, { through: "DeviceActivites" });
 
 export const Group = db.define("group", {
   iconUrl: Sequelize.STRING,
   name: Sequelize.STRING,
   description: Sequelize.TEXT,
-  isDirectMessage: Sequelize.BOOLEAN,
-})
+  isDirectMessage: Sequelize.BOOLEAN
+});
 
 export const Chat = db.define("chat", {
   name: Sequelize.STRING,
-  description: Sequelize.TEXT,
-})
+  description: Sequelize.TEXT
+});
 
-export const Message = db.define("message", {})
+export const Message = db.define("message", {});
 
 const ContentTypes = [
   "remix/text",
@@ -85,77 +85,77 @@ const ContentTypes = [
   "remix/poll",
   "remix/contact",
   "remix/spotify/track",
-  "remix/spotify/album",
-]
+  "remix/spotify/album"
+];
 
 export const Content = db.define("content", {
   type: Sequelize.ENUM(...ContentTypes),
-  data: Sequelize.JSON,
-})
+  data: Sequelize.JSON
+});
 
 export const FriendRequest = db.define("friend_request", {
-  message: Sequelize.TEXT,
-})
+  message: Sequelize.TEXT
+});
 
 export const GroupRequest = db.define("group_request", {
-  message: Sequelize.TEXT,
-})
+  message: Sequelize.TEXT
+});
 
 export const GroupInvitation = db.define("group_invitation", {
-  message: Sequelize.TEXT,
-})
+  message: Sequelize.TEXT
+});
 
 // Associations
 
-User.belongsToMany(User, { as: "Friends", through: "UserFriends" })
-User.belongsToMany(Group, { as: "Groups", through: "UserGroups" })
-Group.belongsToMany(User, { as: "Members", through: "UserGroups" })
+User.belongsToMany(User, { as: "Friends", through: "UserFriends" });
+User.belongsToMany(Group, { as: "Groups", through: "UserGroups" });
+Group.belongsToMany(User, { as: "Members", through: "UserGroups" });
 
 // When a user wants to message another user directly,
 // they send a friend request. Once the friend request
 // is accepted, the two users can private message.
 
-FriendRequest.belongsTo(User, { as: "fromUser" })
-export const MyFriendRequests = FriendRequest.belongsTo(User, { as: "toUser" })
+FriendRequest.belongsTo(User, { as: "fromUser" });
+export const MyFriendRequests = FriendRequest.belongsTo(User, { as: "toUser" });
 
 // When a user wants to join a group, they send the group
 // a request to join. Once an admin of the group accepts
 // the request, the user requesting can partake in group
 // chats.
 
-GroupRequest.belongsTo(User, { as: "fromUser" })
-GroupRequest.belongsTo(Group, { as: "toGroup" })
+GroupRequest.belongsTo(User, { as: "fromUser" });
+GroupRequest.belongsTo(Group, { as: "toGroup" });
 
 // When a member of a group wants to invite another user,
 // the group member will send that user a group invitation.
 
-GroupInvitation.belongsTo(User, { as: "fromUser" })
-GroupInvitation.belongsTo(Group, { as: "forGroup" })
-GroupInvitation.belongsTo(User, { as: "toUser" })
+GroupInvitation.belongsTo(User, { as: "fromUser" });
+GroupInvitation.belongsTo(Group, { as: "forGroup" });
+GroupInvitation.belongsTo(User, { as: "toUser" });
 
-Group.belongsToMany(Chat, { through: "GroupChats" })
-Chat.belongsTo(Group, { through: "GroupChats" })
-Chat.belongsToMany(Message, { through: "ChatMessages" })
-Message.belongsTo(Chat, { through: "ChatMessages" })
-Message.belongsTo(User)
-Message.hasOne(Content)
+Group.belongsToMany(Chat, { through: "GroupChats" });
+Chat.belongsTo(Group, { through: "GroupChats" });
+Chat.belongsToMany(Message, { through: "ChatMessages" });
+Message.belongsTo(Chat, { through: "ChatMessages" });
+Message.belongsTo(User);
+Message.hasOne(Content);
 
 // Read positions
 
 export const ReadPosition = db.define("ReadPositions", {
-  atChatTime: Sequelize.DATE,
-})
+  atChatTime: Sequelize.DATE
+});
 
-ReadPosition.belongsTo(Chat, { through: "ChatReadPositions" })
-Chat.belongsToMany(ReadPosition, { through: "ChatReadPositions" })
-ReadPosition.belongsTo(Message)
+ReadPosition.belongsTo(Chat, { through: "ChatReadPositions" });
+Chat.belongsToMany(ReadPosition, { through: "ChatReadPositions" });
+ReadPosition.belongsTo(Message);
 Message.belongsToMany(ReadPosition, {
   through: "ChatReadPositions",
-  as: "readPositions",
-})
-ReadPosition.belongsTo(User)
+  as: "readPositions"
+});
+ReadPosition.belongsTo(User);
 
-db.sync()
+db.sync();
 
 // db.sync({ force: true }).then(async val => {
 //   console.log("Done syncing")
