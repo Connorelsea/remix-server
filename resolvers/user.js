@@ -9,7 +9,8 @@ import {
   ReadPosition,
   Group,
   Chat,
-  Device
+  Device,
+  GroupInvitation
 } from "../connectors";
 
 import jwt from "jsonwebtoken";
@@ -88,7 +89,9 @@ const groups = isAuthenticatedResolver.createResolver(
 
 const relevantUsers = isAuthenticatedResolver.createResolver(
   async (root, args, context, error) => {
-    const { user: { id } } = context;
+    const {
+      user: { id }
+    } = context;
     const user = await User.findOne({ where: { id } });
     let friends = await user.getFriends();
     let groups = await user.getGroups();
@@ -110,7 +113,9 @@ const relevantUsers = isAuthenticatedResolver.createResolver(
 
 const unreadMessages = isAuthenticatedResolver.createResolver(
   async (root, args, context, error) => {
-    const { user: { id } } = context;
+    const {
+      user: { id }
+    } = context;
 
     try {
       const user = await User.findOne({ where: { id } });
@@ -149,19 +154,6 @@ const getUser = isAuthenticatedResolver.createResolver(
     });
     console.log(user);
     return user;
-  }
-);
-
-const getFriendRequests = isAuthenticatedResolver.createResolver(
-  async (root, args, context, error) => {
-    const { id } = root;
-
-    const requests = await FriendRequest.findAll({
-      where: { toUserId: id },
-      include: [{ model: User, as: "fromUser" }, { model: User, as: "toUser" }]
-    });
-
-    return requests;
   }
 );
 
@@ -250,6 +242,44 @@ const getCurrentReadPositions = isAuthenticatedResolver.createResolver(
   }
 );
 
+/**
+ * My Requests and Invitations
+ */
+
+const getFriendRequests = isAuthenticatedResolver.createResolver(
+  async (root, args, context, error) => {
+    const { id } = root;
+
+    const requests = await FriendRequest.findAll({
+      where: { toUserId: id },
+      include: [{ model: User, as: "fromUser" }, { model: User, as: "toUser" }]
+    });
+
+    return requests;
+  }
+);
+
+const getGroupInvitations = isAuthenticatedResolver.createResolver(
+  async (root, args, context, error) => {
+    const { id } = root;
+
+    const invites = await GroupInvitation.findAll({
+      where: { toUserId: id },
+      include: [{ model: User, as: "fromUser" }, { model: User, as: "toUser" }]
+    });
+
+    return invites;
+  }
+);
+
+const getPendingFriendRequests = isAuthenticatedResolver.createResolver(
+  async (root, args, context, error) => {}
+);
+
+const getPendingGroupRequests = isAuthenticatedResolver.createResolver(
+  async (root, args, context, error) => {}
+);
+
 export default {
   Mutation: {
     createUser
@@ -263,8 +293,9 @@ export default {
   User: {
     friends,
     groups,
-    friendRequests: getFriendRequests,
     allMessages: getAllMessages,
-    currentReadPositions: getCurrentReadPositions
+    currentReadPositions: getCurrentReadPositions,
+    friendRequests: getFriendRequests,
+    groupInvitations: getGroupInvitations
   }
 };

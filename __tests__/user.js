@@ -60,24 +60,6 @@ const createMessageQuery = `
   }
 `;
 
-const createFriendRequestQuery = `
-  mutation($message: String, $fromUserId: ID!, $toUserId: ID!) {
-    createFriendRequest(
-      message: $message,
-      fromUserId: $fromUserId,
-      toUserId: $toUserId
-    ) {
-      id
-    }
-  }
-`;
-
-const acceptFriendRequestQuery = `
-  mutation acceptFriendRequest {
-    acceptFriendRequest(friendRequestId: 1)
-  }
-`;
-
 // Clear the database beforeAll instead of beforeEach. This allows later tests
 // to do things such as test against users that were created in earlier tests.
 // This allows to create a minimal userflow one may take through the database
@@ -425,6 +407,32 @@ test("Existing user should only be able to login with devices they created", asy
   expect(loginResult.data.createNewDevice).toBeUndefined();
 });
 
+/**
+ * Friend Requests
+ */
+
+// Relevant Queries and Mutations
+
+const createFriendRequestQuery = `
+  mutation($message: String, $fromUserId: ID!, $toUserId: ID!) {
+    createFriendRequest(
+      message: $message,
+      fromUserId: $fromUserId,
+      toUserId: $toUserId
+    ) {
+      id
+    }
+  }
+`;
+
+const acceptFriendRequestQuery = `
+  mutation acceptFriendRequest {
+    acceptFriendRequest(friendRequestId: 1)
+  }
+`;
+
+// Tests
+
 test("Send new friend request", async () => {
   const createFriendRequestResult = await makeAuthenticatedQuery(
     createFriendRequestQuery,
@@ -505,6 +513,129 @@ test("Receive a new friend request and accept", async () => {
   // TODO: Ensure that a third user who is new has an empty array of friends
 });
 
+/**
+ * Group Invitations
+ */
+
+// Relevant Queries and Mutations
+
+const createGroupSource = `
+  mutation createGroup(
+    $iconUrl: String
+    $name: String
+    $description: String
+  ) {
+    createGroup(
+      iconUrl: $iconUrl
+      name: $name
+      description: $description
+    ) {
+      id
+    }
+  }
+`;
+
+const createGroupInvitationSource = `
+  mutation createGroupInvitation(
+    $message: String
+    $fromUserId: ID!
+    $toUserId: ID!
+    $forGroupId: ID!
+  ) {
+    createGroupInvitation(
+      message: $message
+      fromUserId: $fromUserId
+      toUserId: $toUserId
+      forGroupId: $forGroupId
+    ) {
+      id
+    }
+  }
+`;
+
+test("Create a new group and send a group invitation", async () => {
+  const createGroupResult = await makeAuthenticatedQuery(
+    createGroupSource,
+    {
+      iconUrl:
+        "https://cdn.dribbble.com/users/2437/screenshots/1578339/1-up_mushroom_1x.png",
+      name: "MyGroup",
+      description: "Description of group"
+    },
+    { user: { id: 2 } }
+  );
+
+  const group = createGroupResult.data.createGroup;
+
+  expect(group).toBeDefined();
+  expect(group.id).toBeDefined();
+
+  // Invite user 1 to this group
+
+  const createGroupInvitationResult = await makeAuthenticatedQuery(
+    createGroupInvitationSource,
+    {
+      message: "Hello, World!",
+      fromUserId: 2,
+      toUserId: 1,
+      forGroupId: group.id
+    },
+    { user: { id: 2 } }
+  );
+
+  const groupInvitation =
+    createGroupInvitationResult.data.createGroupInvitation;
+
+  expect(groupInvitation).toBeDefined();
+  expect(groupInvitation.id).toBeDefined();
+
+  const userQueryResult = await makeAuthenticatedQuery(
+    `
+      query User {
+        User(id: 1) {
+          id
+          groupInvitations {
+            id
+            fromUser { id }
+            message
+          }
+        }
+      }
+    `
+  );
+
+  const userOne = userQueryResult.data.User;
+
+  expect(userOne).toBeDefined();
+  expect(userOne.groupInvitations).toBeDefined();
+  expect(userOne.groupInvitations.length).toBe(1);
+  expect(userOne.groupInvitations[0].fromUser.id).toBe("2");
+});
+
+test("Accept a group invitation and become a member of a new group", async () => {
+  const acceptInvitationQuery = `
+    mutation acceptGroupInvitation($invitationId: ID!) {
+      acceptGroupInvitation(invitationId: $invitationId) {
+        id
+        members { id }
+      }
+    }
+  `;
+
+  const acceptResult = await makeAuthenticatedQuery(acceptInvitationQuery, {
+    invitationId: 1
+  });
+
+  const newGroup = acceptResult.data.acceptGroupInvitation;
+
+  expect(newGroup.id).toBe("2");
+  expect(newGroup.members.length).toBe(2);
+
+  // Order isn't garunteed, user id 1 is confirmed to be member
+
+  expect(Math.min(newGroup.members[1].id, newGroup.members[0].id)).toBe(1);
+});
+
 test("Two new friends are in a direct message group", async () => {
   const firstUserQuery = `
     query User {
@@ -542,13 +673,16 @@ test("Two new friends are in a direct message group", async () => {
   // Ensure that now they are on each other's friend list
   // and that they are in a group together
 
-  expect(firstUserResult.data.User.groups.length).toBe(1);
+  // Update: This user has two groups because they accepted
+  // a group invitation in an earlier test.
+
+  expect(firstUserResult.data.User.groups.length).toBe(2);
   expect(firstUserResult.data.User.groups[0].id).toBe("1");
   expect(firstUserResult.data.User.groups[0].name).toBe("friend");
   expect(firstUserResult.data.User.groups[0].isDirectMessage).toBe(true);
   expect(firstUserResult.data.User.groups[0].members.length).toBe(2);
 
-  expect(secondUserResult.data.User.groups.length).toBe(1);
+  expect(secondUserResult.data.User.groups.length).toBe(2);
 });
 
 test("A user's relevantUsers include their friends", async () => {
@@ -717,56 +851,56 @@ test("A user should query allMessages to get recent messages", async () => {
   expect(messages[3].content.data.text).toBe("fourth message");
 });
 
-test("More users join the chat", async () => {});
+// test("More users join the chat", async () => {});
 
-test("A client should be able to mark a user's read position for each chat", async () => {
-  const users = [
-    {
-      email: "amy@gmail.com",
-      name: "Amy Corn",
-      username: "am57",
-      password: "pw",
-      iconUrl:
-        "https://cdn.pixabay.com/photo/2017/08/20/23/04/girl-2663559_960_720.jpg"
-    },
-    {
-      email: "chad@aol.com",
-      name: "Chad Peters",
-      username: "chad_45",
-      password: "pw",
-      iconUrl:
-        "https://static.goldderby.com/wp-content/uploads/2016/04/author-tony-ruiz.jpg"
-    },
-    {
-      email: "lisa@yahoo.com",
-      name: "Lisa Sapper",
-      username: "lisa556",
-      password: "pw",
-      iconUrl:
-        "https://siri-cdn.appadvice.com/wp-content/appadvice-v2-media/2017/01/Portrait-mode-curly-hair_75d678192b4c14047f1431c904491ee7-xl.jpg"
-    }
-  ];
+// test("A client should be able to mark a user's read position for each chat", async () => {
+//   const users = [
+//     {
+//       email: "amy@gmail.com",
+//       name: "Amy Corn",
+//       username: "am57",
+//       password: "pw",
+//       iconUrl:
+//         "https://cdn.pixabay.com/photo/2017/08/20/23/04/girl-2663559_960_720.jpg"
+//     },
+//     {
+//       email: "chad@aol.com",
+//       name: "Chad Peters",
+//       username: "chad_45",
+//       password: "pw",
+//       iconUrl:
+//         "https://static.goldderby.com/wp-content/uploads/2016/04/author-tony-ruiz.jpg"
+//     },
+//     {
+//       email: "lisa@yahoo.com",
+//       name: "Lisa Sapper",
+//       username: "lisa556",
+//       password: "pw",
+//       iconUrl:
+//         "https://siri-cdn.appadvice.com/wp-content/appadvice-v2-media/2017/01/Portrait-mode-curly-hair_75d678192b4c14047f1431c904491ee7-xl.jpg"
+//     }
+//   ];
 
-  users.forEach(async user => {
-    const response = await makeAuthenticatedQuery(createUserQuery, user);
+//   users.forEach(async user => {
+//     const response = await makeAuthenticatedQuery(createUserQuery, user);
 
-    await makeAuthenticatedQuery(createFriendRequestQuery, {
-      message: "Hello, I want to be your friend",
-      fromUserId: response.data.createUser.id,
-      toUserId: "2"
-    });
-  });
-});
+//     await makeAuthenticatedQuery(createFriendRequestQuery, {
+//       message: "Hello, I want to be your friend",
+//       fromUserId: response.data.createUser.id,
+//       toUserId: "2"
+//     });
+//   });
+// });
 
-test("Relevant read positions should be from chats you are in", async () => {
-  const relevantReadPositionsQuery = `
-    query relevantReadPositions {
-      relevantReadPositions {
-        id
-      }
-    }
-  `;
-});
+// test("Relevant read positions should be from chats you are in", async () => {
+//   const relevantReadPositionsQuery = `
+//     query relevantReadPositions {
+//       relevantReadPositions {
+//         id
+//       }
+//     }
+//   `;
+// });
 
 test("Unread messages should be messages (from chats you are a member of) created after your most recent read position in each chat", async () => {
   // Query messages from the second user

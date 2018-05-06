@@ -62,12 +62,6 @@ export function startExpressApp() {
     next();
   });
 
-  // Error formatting
-
-  const UnknownError = createError("UnknownError", {
-    message: "An unknown error has occurred.  Please try again later"
-  });
-
   // Start graphql
 
   app.use(

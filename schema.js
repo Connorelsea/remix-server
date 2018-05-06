@@ -6,10 +6,30 @@ const typeDefs = `
 
 scalar JSON
 
+# Requests and Invitations
+
 type FriendRequest {
   id: ID!
   fromUser: User!
   toUser: User!
+  message: String
+  createdAt: String
+}
+
+type GroupInvitation {
+  id: ID!
+  fromUser: User!
+  toUser: User!
+  forGroup: Group!
+  message: String
+  createdAt: String
+}
+
+type GroupRequest {
+  id: ID!
+  fromUser: User!
+  toUser: User!
+  forGroup: Group!
   message: String
   createdAt: String
 }
@@ -21,27 +41,36 @@ type MessageResponse {
 
 type User {
   id: ID!
-  token: String
+  email: String!
+  username: String!
+
   name: String
-  email: String
-  username: String
   description: String
   iconUrl: String
   color: String
+
+  # Associations
+
   friends: [User]
   groups: [Group]
-  friendRequests: [FriendRequest]
   allMessages: [Message]
   currentReadPositions: [ReadPosition]
+
+  # Requests and Invitations
+
+  friendRequests: [FriendRequest]
+  groupInvitations: [GroupInvitation]
+  pendingFriendRequests: [FriendRequest]
+  pendingGroupRequests: [GroupRequest]
 }
 
 type Device {
   id: ID!
-  user: User
-  name: String
-  valid: Boolean
-  refreshToken: String
-  accessToken: String
+  user: User!
+  valid: Boolean!
+  name: String!
+  refreshToken: String!
+  accessToken: String!
 }
 
 type ReadPosition {
@@ -177,9 +206,10 @@ type Mutation {
   ): Device
 
   createGroup(
+    iconUrl: String
     name: String
-    username: String
-  ): String
+    description: String
+  ): Group
 
   createChat(
     inGroupId: ID!
@@ -187,28 +217,38 @@ type Mutation {
     description: String
   ): Chat
 
+  # Friend Requests
+
   createFriendRequest(
-    message: String,
-    fromUserId: ID!,
-    toUserId: ID!,
+    message: String
+    fromUserId: ID!
+    toUserId: ID!
   ): FriendRequest
 
   acceptFriendRequest(
-    friendRequestId: ID!,
-  ): String
+    friendRequestId: ID!
+  ): Boolean
+
+  # Group Requests
 
   createGroupRequest(
-    message: String!,
-    fromUserId: ID!,
-    toUserId: ID!,
-  ): String
+    message: String
+    fromUserId: ID!
+    toUserId: ID!
+  ): GroupRequest
+
+  # Group Invitations
 
   createGroupInvitation(
-    message: String!,
-    fromUserId: ID!,
-    toUserId: ID!,
+    message: String
+    fromUserId: ID!
+    toUserId: ID!
     forGroupId: ID!
-  ): String
+  ): GroupInvitation
+
+  acceptGroupInvitation(
+    invitationId: ID!
+  ): Group
 
   # Create a message with original content and send
   # in a specific chat

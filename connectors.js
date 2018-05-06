@@ -9,7 +9,11 @@ console.log("RUNNING WITH LOCAL MODE SET TO " + local);
 
 export const db = local
   ? new Sequelize("remix", "", null, {
-      dialect: "postgres"
+      dialect: "postgres",
+      pool: {
+        max: 10,
+        min: 0
+      }
     })
   : new Sequelize(process.env.DATABASE_URL, {
       dialect: "postgres"
@@ -67,7 +71,11 @@ export const Group = db.define("group", {
   iconUrl: Sequelize.STRING,
   name: Sequelize.STRING,
   description: Sequelize.TEXT,
-  isDirectMessage: Sequelize.BOOLEAN
+  isDirectMessage: Sequelize.BOOLEAN,
+  // Settings
+  showInGlobalSearch: Sequelize.BOOLEAN,
+  allowMemberInvites: Sequelize.BOOLEAN,
+  allowMemberRequests: Sequelize.BOOLEAN
 });
 
 export const Chat = db.define("chat", {
@@ -105,11 +113,16 @@ export const GroupInvitation = db.define("group_invitation", {
   message: Sequelize.TEXT
 });
 
-// Associations
-
+// Friends
 User.belongsToMany(User, { as: "Friends", through: "UserFriends" });
+
+// Members
 User.belongsToMany(Group, { as: "Groups", through: "UserGroups" });
 Group.belongsToMany(User, { as: "Members", through: "UserGroups" });
+
+// Admins
+Group.belongsToMany(User, { as: "Admins", through: "GroupAdmins" });
+User.belongsToMany(Group, { as: "OwnedGroups", through: "GroupAdmins" });
 
 // When a user wants to message another user directly,
 // they send a friend request. Once the friend request

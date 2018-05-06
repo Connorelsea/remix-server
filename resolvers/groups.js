@@ -1,78 +1,99 @@
-import { isAuthenticatedResolver } from "./access"
-import { baseResolver } from "./base"
-import { User, Group, Chat, Message } from "../connectors"
-import { Op } from "sequelize"
+import { isAuthenticatedResolver } from "./access";
+import { baseResolver } from "./base";
+import { User, Group, Chat, Message } from "../connectors";
+import { Op } from "sequelize";
 
 const createGroup = isAuthenticatedResolver.createResolver(
   async (root, args, context, error) => {
-    const { iconUrl, name, description } = args
-    const group = await Group.create({
-      iconUrl,
-      name,
-      description,
-    })
-    return group
+    const { iconUrl, name, description } = args;
+
+    try {
+      const newGroup = await Group.create({
+        iconUrl,
+        name,
+        description,
+        isDirectMessage: false
+      });
+
+      const currentUser = await User.findOne({
+        where: { id: context.user.id }
+      });
+
+      let response = await newGroup.addMember(currentUser);
+
+      const newChat = await Chat.create({
+        name: "general",
+        description: "Conversation and chatting"
+      });
+
+      newGroup.addChat(newChat);
+      await newChat.setGroup(newGroup);
+
+      return newGroup;
+    } catch (err) {
+      console.error(err);
+    }
   }
-)
+);
 
 const getGroup = isAuthenticatedResolver.createResolver(
   async (root, args, context, error) => {
-    const { id } = args
-    const group = await Group.findOne({ where: { id } })
-    return group
+    const { id } = args;
+    const group = await Group.findOne({ where: { id } });
+    return group;
   }
-)
+);
 
 const createChat = isAuthenticatedResolver.createResolver(
   async (root, args, context, error) => {
-    const { inGroupId, name, description } = args
-    const chat = await Chat.create({ groupId: inGroupId, name, description })
-    const group = await chat.getGroup()
-    group.addChat(chat)
-    return chat
+    const { inGroupId, name, description } = args;
+    const chat = await Chat.create({ groupId: inGroupId, name, description });
+    const group = await chat.getGroup();
+    group.addChat(chat);
+    return chat;
   }
-)
+);
 
 const getChats = baseResolver.createResolver(
   async (group, args, context, info) => {
-    return await group.getChats()
+    return await group.getChats();
   }
-)
+);
 
 const getMembers = baseResolver.createResolver(
   async (group, args, context, info) => {
-    return await group.getMembers()
+    return await group.getMembers();
   }
-)
+);
 
 const getChat = isAuthenticatedResolver.createResolver(
   async (root, args, context, error) => {
-    const { id } = args
-    const chat = await Chat.findOne({ where: { id } })
-    return chat
+    const { id } = args;
+    const chat = await Chat.findOne({ where: { id } });
+    return chat;
   }
-)
+);
 
 const getMessages = isAuthenticatedResolver.createResolver(
   async (chat, args, context, error) => {
-    return await chat.getMessages()
+    return await chat.getMessages();
   }
-)
+);
 
 export default {
   Mutation: {
     createGroup,
-    createChat,
+    createChat
   },
   Query: {
     Group: getGroup,
-    Chat: getChat,
+    Chat: getChat
   },
   Group: {
     chats: getChats,
-    members: getMembers,
+    members: getMembers
   },
   Chat: {
-    messages: getMessages,
-  },
-}
+    messages: getMessages
+  }
+};
