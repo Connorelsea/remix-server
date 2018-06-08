@@ -1,5 +1,5 @@
 import { graphql } from "graphql";
-import schema from "../schema";
+import { schema } from "../schema";
 import { db } from "../connectors";
 import Sequelize from "sequelize";
 import bcrypt from "bcrypt";
@@ -10,7 +10,7 @@ import {
   MyFriendRequests,
   Message,
   Content,
-  ReadPosition
+  ReadPosition,
 } from "../connectors";
 
 import { createResolver } from "apollo-resolvers";
@@ -23,12 +23,12 @@ async function makeAuthenticatedQuery(query, vars, context) {
         ? context
         : {
             user: {
-              id: 2
-            }
+              id: 2,
+            },
           },
     rootValue: {},
     schema,
-    variableValues: vars
+    variableValues: vars,
   });
 }
 
@@ -36,14 +36,19 @@ const createGroup = `
   mutation createGroup(
     $iconUrl: String
     $name: String
+    $username: String
     $description: String
   ) {
     createGroup(
       iconUrl: $iconUrl
       name: $name
+      username: $username
       description: $description
     ) {
       id
+      name
+      username
+      description
       members {
         id
       }
@@ -62,8 +67,9 @@ describe("Any user can create a new group", function() {
     const response = await makeAuthenticatedQuery(createGroup, {
       iconUrl:
         "https://cdn.dribbble.com/users/2437/screenshots/1578339/1-up_mushroom_1x.png",
-      name: "MyGroup",
-      description: "Description of group"
+      name: "My Group",
+      username: "mygroup",
+      description: "Description of group",
     });
     group = response.data.createGroup;
   });
@@ -71,6 +77,12 @@ describe("Any user can create a new group", function() {
   it("should exist", () => {
     expect(group).toBeDefined();
     expect(group.id).toBeDefined();
+  });
+
+  it("should have name, username, and description", () => {
+    expect(group.name).toBe("My Group");
+    expect(group.username).toBe("mygroup");
+    expect(group.description).toBeDefined();
   });
 
   it("should have one member, the creator", () => {
@@ -82,6 +94,12 @@ describe("Any user can create a new group", function() {
   it("should have one default chat", () => {
     expect(group.chats).toBeDefined();
     expect(group.chats[0].name).toBe("general");
+  });
+});
+
+describe("Query for group metadata", function() {
+  test("Query groups by id", async () => {
+    // const response =
   });
 });
 

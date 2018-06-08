@@ -1,5 +1,5 @@
 import { graphql } from "graphql";
-import schema from "../schema";
+import { schema } from "../schema";
 import { db } from "../connectors";
 import Sequelize from "sequelize";
 import bcrypt from "bcrypt";
@@ -10,7 +10,7 @@ import {
   MyFriendRequests,
   Message,
   Content,
-  ReadPosition
+  ReadPosition,
 } from "../connectors";
 import { createResolver } from "apollo-resolvers";
 
@@ -77,12 +77,12 @@ async function makeAuthenticatedQuery(query, vars, context) {
         ? context
         : {
             user: {
-              id: 1
-            }
+              id: 1,
+            },
           },
     rootValue: {},
     schema,
-    variableValues: vars
+    variableValues: vars,
   }).catch(err => console.error(err));
 }
 
@@ -92,20 +92,23 @@ test("Create and query a new user", async () => {
       email: "test@test.com",
       name: "Test Userman",
       username: "testuserman",
+      description: "short bio m8 😎 ✡️",
       password: "test",
       color: "#B42425",
       iconUrl:
-        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-0.3.5&s=5da2982426ae7e8085acbc322d7ad54d&dpr=1&auto=format&fit=crop&w=376&h=251&q=60&cs=tinysrgb"
+        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-0.3.5&s=5da2982426ae7e8085acbc322d7ad54d&dpr=1&auto=format&fit=crop&w=376&h=251&q=60&cs=tinysrgb",
     },
     {
       email: "react",
       name: "Woman Testuser",
       username: "womantestuser",
+      description:
+        "I am a test remix user. I love apples and hand sanitizer. I have been a doctor for a few weeks now.",
       password: "test",
       color: "#89C1FF",
       iconUrl:
-        "https://i.pinimg.com/236x/41/53/a8/4153a8d6d45dae78a9e51791ff15007f.jpg"
-    }
+        "https://i.pinimg.com/236x/41/53/a8/4153a8d6d45dae78a9e51791ff15007f.jpg",
+    },
   ];
 
   let createResult = await makeAuthenticatedQuery(createUserQuery, users[0]);
@@ -161,7 +164,7 @@ test("New user should be able to log in and receive token", async () => {
   const loginResult = await makeAuthenticatedQuery(loginMutation, {
     email: "test@test.com",
     deviceId: "1", // see create user test
-    password: "test"
+    password: "test",
   });
 
   expect(loginResult.data.loginWithExistingDevice.id).toBeDefined();
@@ -173,7 +176,7 @@ test("New user should be able to log in and receive token", async () => {
   const loginNoDeviceResult = await makeAuthenticatedQuery(loginMutation, {
     email: "test@test.com",
     deviceId: "", // see create user test
-    password: "test"
+    password: "test",
   });
 
   expect(loginNoDeviceResult.errors).toBeDefined();
@@ -200,7 +203,7 @@ test("Existing user should be able to log in with a newly created device", async
 
   const createResult = await makeAuthenticatedQuery(createDeviceMutation, {
     name: "Connors Macbook Pro",
-    password: "test"
+    password: "test",
   });
 
   expect(createResult.data.createNewDevice.id).toBeDefined();
@@ -213,7 +216,7 @@ test("Existing user should be able to log in with a newly created device", async
   const loginResult = await makeAuthenticatedQuery(loginMutation, {
     email: "test@test.com",
     deviceId: createResult.data.createNewDevice.id, // see create user test
-    password: "test"
+    password: "test",
   });
 
   expect(loginResult.data.loginWithExistingDevice.id).toBeDefined();
@@ -260,7 +263,7 @@ test("Existing user should be able to login using a new device implicitly", asyn
     operatingSystem: "MacOS",
     browser: "Chrome",
     cpu: "Intel",
-    gpu: "Intel"
+    gpu: "Intel",
   });
 
   const newDevice = loginResult.data.loginWithNewDevice;
@@ -295,7 +298,7 @@ test("A user should request a new access token when their expires", async () => 
   const loginResult = await makeAuthenticatedQuery(loginMutation, {
     email: "test@test.com",
     deviceId: "1", // see create user test
-    password: "test"
+    password: "test",
   });
 
   let device = loginResult.data.loginWithExistingDevice;
@@ -323,7 +326,7 @@ test("A user should request a new refresh token when theirs expires", async () =
   const loginResult = await makeAuthenticatedQuery(loginMutation, {
     email: "test@test.com",
     deviceId: "1", // see create user test
-    password: "test"
+    password: "test",
   });
 
   let device = loginResult.data.loginWithExistingDevice;
@@ -360,7 +363,7 @@ test("A user should request a new refresh token when theirs expires", async () =
   const variables = {
     refreshToken: originalDeviceRefreshToken,
     email: "test@test.com",
-    password: "test"
+    password: "test",
   };
 
   const getNewRefreshTokenResult = await makeAuthenticatedQuery(
@@ -383,10 +386,10 @@ test("Existing user should only be able to login with devices they created", asy
     createDeviceMutation,
     {
       name: "Not Connors Macbook Pro",
-      password: "test"
+      password: "test",
     },
     {
-      user: { id: 2 }
+      user: { id: 2 },
     }
   );
 
@@ -400,7 +403,7 @@ test("Existing user should only be able to login with devices they created", asy
   const loginResult = await makeAuthenticatedQuery(loginMutation, {
     email: "test@test.com",
     deviceId: createResult.data.createNewDevice.id,
-    password: "test"
+    password: "test",
   });
 
   expect(loginResult.errors).toBeDefined();
@@ -439,7 +442,7 @@ test("Send new friend request", async () => {
     {
       message: "Hello, World!",
       fromUserId: "2",
-      toUserId: "1"
+      toUserId: "1",
     }
   );
 
@@ -522,11 +525,13 @@ test("Receive a new friend request and accept", async () => {
 const createGroupSource = `
   mutation createGroup(
     $iconUrl: String
+    $username: String
     $name: String
     $description: String
   ) {
     createGroup(
       iconUrl: $iconUrl
+      username: $username
       name: $name
       description: $description
     ) {
@@ -559,8 +564,9 @@ test("Create a new group and send a group invitation", async () => {
     {
       iconUrl:
         "https://cdn.dribbble.com/users/2437/screenshots/1578339/1-up_mushroom_1x.png",
-      name: "MyGroup",
-      description: "Description of group"
+      username: "myfirstgroup",
+      name: "My 1st Group 🦋",
+      description: "Description of group, created in user tests",
     },
     { user: { id: 2 } }
   );
@@ -578,7 +584,7 @@ test("Create a new group and send a group invitation", async () => {
       message: "Hello, World!",
       fromUserId: 2,
       toUserId: 1,
-      forGroupId: group.id
+      forGroupId: group.id,
     },
     { user: { id: 2 } }
   );
@@ -623,7 +629,7 @@ test("Accept a group invitation and become a member of a new group", async () =>
   `;
 
   const acceptResult = await makeAuthenticatedQuery(acceptInvitationQuery, {
-    invitationId: 1
+    invitationId: 1,
   });
 
   const newGroup = acceptResult.data.acceptGroupInvitation;
@@ -730,8 +736,32 @@ test("A user sends messages to a group's chat", async () => {
 
   await makeAuthenticatedQuery(createMessageQuery, {
     type: "remix/text",
+    data: { text: "Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt." },
+    chatId: resultGroups[1].chats[0].id,
+  });
+
+  await makeAuthenticatedQuery(createMessageQuery, {
+    type: "remix/text",
+    data: { text: "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo." },
+    chatId: resultGroups[1].chats[0].id,
+  });
+
+  await makeAuthenticatedQuery(createMessageQuery, {
+    type: "remix/text",
+    data: { text: "Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur?" },
+    chatId: resultGroups[1].chats[0].id,
+  });
+
+  await makeAuthenticatedQuery(createMessageQuery, {
+    type: "remix/text",
+    data: { text: "Ha 😂" },
+    chatId: resultGroups[1].chats[0].id,
+  });
+
+  await makeAuthenticatedQuery(createMessageQuery, {
+    type: "remix/text",
     data: { text: "hello" },
-    chatId
+    chatId,
   });
 
   await makeAuthenticatedQuery(
@@ -739,10 +769,10 @@ test("A user sends messages to a group's chat", async () => {
     {
       type: "remix/text",
       data: { text: "second message" },
-      chatId
+      chatId,
     },
     {
-      user: { id: "2" }
+      user: { id: "2" },
     }
   );
 
@@ -751,10 +781,10 @@ test("A user sends messages to a group's chat", async () => {
     {
       type: "remix/text",
       data: { text: "third message" },
-      chatId
+      chatId,
     },
     {
-      user: { id: "2" }
+      user: { id: "2" },
     }
   );
 
@@ -763,10 +793,10 @@ test("A user sends messages to a group's chat", async () => {
     {
       type: "remix/text",
       data: { text: "fourth message" },
-      chatId
+      chatId,
     },
     {
-      user: { id: "2" }
+      user: { id: "2" },
     }
   );
 
@@ -775,10 +805,10 @@ test("A user sends messages to a group's chat", async () => {
     {
       type: "remix/text",
       data: { text: "fifth message" },
-      chatId
+      chatId,
     },
     {
-      user: { id: "2" }
+      user: { id: "2" },
     }
   );
 
@@ -952,7 +982,7 @@ test("Unread messages should be messages (from chats you are a member of) create
   const updateResult = await makeAuthenticatedQuery(
     updateReadPositionMutation,
     {
-      forMessageId: messages[0].id
+      forMessageId: messages[0].id,
     }
   );
 

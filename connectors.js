@@ -12,11 +12,11 @@ export const db = local
       dialect: "postgres",
       pool: {
         max: 10,
-        min: 0
-      }
+        min: 0,
+      },
     })
   : new Sequelize(process.env.DATABASE_URL, {
-      dialect: "postgres"
+      dialect: "postgres",
     });
 
 export const User = db.define("user", {
@@ -27,7 +27,7 @@ export const User = db.define("user", {
   password: Sequelize.STRING,
   description: Sequelize.TEXT,
   email: Sequelize.STRING,
-  phone_number: Sequelize.STRING
+  phone_number: Sequelize.STRING,
 });
 
 // An activity object (stream) could have a relation
@@ -47,11 +47,34 @@ export const Device = db.define("device", {
 
   // Settings
   trackActivityLocation: Sequelize.BOOLEAN,
-  retainActivityHistoryForTime: Sequelize.STRING
+  retainActivityHistoryForTime: Sequelize.STRING,
 });
 
 User.belongsToMany(Device, { through: "UserDevices" });
 Device.belongsTo(User, { through: "UserDevices" });
+
+/**
+ * Tab
+ *
+ * Tabs are unlike some other objects in the database because
+ * tabs will be represented by theoretically different objects
+ * on the client and will be bulk syned via a single graphql
+ * command. Tabs are related to Device; similar to Activity.
+ */
+
+export const Tab = db.define("tab", {
+  url: Sequelize.STRING,
+  title: Sequelize.STRING,
+  subtitle: Sequelize.STRING,
+  iconUrl: Sequelize.STRING,
+});
+
+Tab.belongsTo(Device, { through: "DeviceTabs" });
+Device.belongsToMany(Tab, { through: "DeviceTabs" });
+
+/**
+ * Activity
+ */
 
 const ActivityTypes = ["online", "inactive", "offline"];
 
@@ -60,7 +83,7 @@ export const Activity = db.define("activity", {
   downloadSpeed: Sequelize.STRING,
   batteryLevel: Sequelize.STRING,
   latitude: Sequelize.STRING,
-  longitude: Sequelize.STRING
+  longitude: Sequelize.STRING,
 });
 
 // User.belongsTo(Device, { through: "DeviceActivities" });
@@ -69,18 +92,19 @@ Device.belongsToMany(Activity, { through: "DeviceActivites" });
 
 export const Group = db.define("group", {
   iconUrl: Sequelize.STRING,
+  username: Sequelize.STRING,
   name: Sequelize.STRING,
   description: Sequelize.TEXT,
   isDirectMessage: Sequelize.BOOLEAN,
   // Settings
   showInGlobalSearch: Sequelize.BOOLEAN,
   allowMemberInvites: Sequelize.BOOLEAN,
-  allowMemberRequests: Sequelize.BOOLEAN
+  allowMemberRequests: Sequelize.BOOLEAN,
 });
 
 export const Chat = db.define("chat", {
   name: Sequelize.STRING,
-  description: Sequelize.TEXT
+  description: Sequelize.TEXT,
 });
 
 export const Message = db.define("message", {});
@@ -93,24 +117,24 @@ const ContentTypes = [
   "remix/poll",
   "remix/contact",
   "remix/spotify/track",
-  "remix/spotify/album"
+  "remix/spotify/album",
 ];
 
 export const Content = db.define("content", {
   type: Sequelize.ENUM(...ContentTypes),
-  data: Sequelize.JSON
+  data: Sequelize.JSON,
 });
 
 export const FriendRequest = db.define("friend_request", {
-  message: Sequelize.TEXT
+  message: Sequelize.TEXT,
 });
 
 export const GroupRequest = db.define("group_request", {
-  message: Sequelize.TEXT
+  message: Sequelize.TEXT,
 });
 
 export const GroupInvitation = db.define("group_invitation", {
-  message: Sequelize.TEXT
+  message: Sequelize.TEXT,
 });
 
 // Friends
@@ -156,7 +180,7 @@ Message.hasOne(Content);
 // Read positions
 
 export const ReadPosition = db.define("ReadPositions", {
-  atChatTime: Sequelize.DATE
+  atChatTime: Sequelize.DATE,
 });
 
 ReadPosition.belongsTo(Chat, { through: "ChatReadPositions" });
@@ -164,7 +188,7 @@ Chat.belongsToMany(ReadPosition, { through: "ChatReadPositions" });
 ReadPosition.belongsTo(Message);
 Message.belongsToMany(ReadPosition, {
   through: "ChatReadPositions",
-  as: "readPositions"
+  as: "readPositions",
 });
 ReadPosition.belongsTo(User);
 

@@ -5,25 +5,26 @@ import { Op } from "sequelize";
 
 const createGroup = isAuthenticatedResolver.createResolver(
   async (root, args, context, error) => {
-    const { iconUrl, name, description } = args;
+    const { iconUrl, name, username, description } = args;
 
     try {
       const newGroup = await Group.create({
         iconUrl,
         name,
+        username,
         description,
-        isDirectMessage: false
+        isDirectMessage: false,
       });
 
       const currentUser = await User.findOne({
-        where: { id: context.user.id }
+        where: { id: context.user.id },
       });
 
       let response = await newGroup.addMember(currentUser);
 
       const newChat = await Chat.create({
         name: "general",
-        description: "Conversation and chatting"
+        description: "Conversation and chatting",
       });
 
       newGroup.addChat(newChat);
@@ -80,20 +81,45 @@ const getMessages = isAuthenticatedResolver.createResolver(
   }
 );
 
+/**
+ * These endpoints both take a set of unique identifiers that represent
+ * groups and returns metadata about those groups.
+ */
+
+const getGroupsById = baseResolver.createResolver(
+  async (root, args, context, info) => {
+    let groups = args.groupIdentifiers;
+    groups = groups.map(group => Group.find({ where: { id: group } }));
+    const groupModelResults = await Promise.all(groups);
+    return groupModelResults;
+  }
+);
+
+const getGroupsByName = baseResolver.createResolver(
+  async (root, args, context, info) => {
+    let groups = args.groupIdentifiers;
+    groups = groups.map(group => Group.find({ where: { username: group } }));
+    const groupModelResults = await Promise.all(groups);
+    return groupModelResults;
+  }
+);
+
 export default {
   Mutation: {
     createGroup,
-    createChat
+    createChat,
   },
   Query: {
     Group: getGroup,
-    Chat: getChat
+    Chat: getChat,
+    getGroupsById,
+    getGroupsByName,
   },
   Group: {
     chats: getChats,
-    members: getMembers
+    members: getMembers,
   },
   Chat: {
-    messages: getMessages
-  }
+    messages: getMessages,
+  },
 };

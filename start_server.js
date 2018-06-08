@@ -1,5 +1,5 @@
 import { Client } from "pg";
-import { startApolloEngine, startExpressApp } from ".";
+import { startApolloEngine, startExpressApp, startServer } from ".";
 
 async function start() {
   console.log("[Server] Connecting to PostgreSQL");
@@ -28,5 +28,4 @@ async function start() {
 
 start();
 
-startApolloEngine();
-startExpressApp();
+startServer();
