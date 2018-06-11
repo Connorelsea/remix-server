@@ -117,6 +117,12 @@ export const typeDefs = gql`
     newGroup: Group!
   }
 
+  type SearchResponse {
+    friends: [User]
+    users: [User]
+    groups: [Group]
+  }
+
   type Subscription {
     newFriendRequest(toUserId: ID): FriendRequest
     newFriend(forUserId: ID!): NewFriendResponse
@@ -142,6 +148,8 @@ export const typeDefs = gql`
 
     getGroupsById(groupIdentifiers: [ID]): [Group]
     getGroupsByName(groupIdentifiers: [String]): [Group]
+
+    search(phrase: String!): SearchResponse
   }
 
   type Mutation {
@@ -258,6 +266,7 @@ export const typeDefs = gql`
 
     updateReadPosition(forMessageId: ID!): ReadPosition
   }
+
 `;
 
 export const schema = makeExecutableSchema({

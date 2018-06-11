@@ -7,6 +7,9 @@ async function start() {
   const client = new Client();
   await client.connect();
 
+  console.log("[Server] Trying to install trigram extension");
+  await client.query("CREATE EXTENSION pg_trgm;");
+
   console.log("[Server] Checking if remix database exists");
 
   const response = await client.query(`

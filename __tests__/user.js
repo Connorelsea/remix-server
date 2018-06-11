@@ -99,7 +99,7 @@ test("Create and query a new user", async () => {
         "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-0.3.5&s=5da2982426ae7e8085acbc322d7ad54d&dpr=1&auto=format&fit=crop&w=376&h=251&q=60&cs=tinysrgb",
     },
     {
-      email: "react",
+      email: "react@react.com",
       name: "Woman Testuser",
       username: "womantestuser",
       description:
@@ -736,19 +736,28 @@ test("A user sends messages to a group's chat", async () => {
 
   await makeAuthenticatedQuery(createMessageQuery, {
     type: "remix/text",
-    data: { text: "Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt." },
+    data: {
+      text:
+        "Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.",
+    },
     chatId: resultGroups[1].chats[0].id,
   });
 
   await makeAuthenticatedQuery(createMessageQuery, {
     type: "remix/text",
-    data: { text: "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo." },
+    data: {
+      text:
+        "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.",
+    },
     chatId: resultGroups[1].chats[0].id,
   });
 
   await makeAuthenticatedQuery(createMessageQuery, {
     type: "remix/text",
-    data: { text: "Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur?" },
+    data: {
+      text:
+        "Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur?",
+    },
     chatId: resultGroups[1].chats[0].id,
   });
 
@@ -873,7 +882,7 @@ test("A user should query allMessages to get recent messages", async () => {
   console.log("ALL MESSAGES", messages.map(m => m.content.data));
 
   expect(messages).toBeDefined();
-  expect(messages.length).toBe(5);
+  expect(messages.length).toBe(9);
 
   expect(messages[0].content.data.text).toBe("hello");
   expect(messages[1].content.data.text).toBe("second message");

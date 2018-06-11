@@ -9,6 +9,7 @@ import messages from "./messages";
 import devices from "./devices";
 import activity from "./activity";
 import identity from "./identity";
+import search from "./search";
 
 /*
   This combines our multiple resolver definition
@@ -22,7 +23,8 @@ const resolvers = combineResolvers([
   scalars,
   messages,
   devices,
-  activity
+  activity,
+  search,
 ]);
 
 export default resolvers;

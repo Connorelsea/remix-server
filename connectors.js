@@ -19,16 +19,50 @@ export const db = local
       dialect: "postgres",
     });
 
-export const User = db.define("user", {
-  iconUrl: Sequelize.STRING,
-  color: Sequelize.STRING,
-  name: Sequelize.STRING,
-  username: Sequelize.STRING,
-  password: Sequelize.STRING,
-  description: Sequelize.TEXT,
-  email: Sequelize.STRING,
-  phone_number: Sequelize.STRING,
-});
+export const User = db.define(
+  "user",
+  {
+    iconUrl: {
+      type: Sequelize.STRING,
+      validate: {
+        isUrl: true,
+      },
+    },
+    color: Sequelize.STRING,
+    name: Sequelize.STRING,
+    username: {
+      type: Sequelize.STRING,
+      unique: true,
+      validate: {
+        len: [2, 50],
+      },
+    },
+    password: {
+      type: Sequelize.STRING,
+      validate: {
+        len: [5, 1000],
+      },
+    },
+    description: Sequelize.TEXT,
+    email: {
+      type: Sequelize.STRING,
+      unique: true,
+      validate: {
+        isEmail: true,
+      },
+    },
+  }
+  // {
+  //   indexes: [
+  //     {
+  //       name: "index_user_trigram",
+  //       concurrently: true,
+  //       method: "gin",
+  //       fields: [Sequelize.literal("user gin_trgm_ops")],
+  //     },
+  //   ],
+  // }
+);
 
 // An activity object (stream) could have a relation
 // to a Device from which device the most recent
@@ -80,7 +114,6 @@ const ActivityTypes = ["online", "inactive", "offline"];
 
 export const Activity = db.define("activity", {
   type: Sequelize.ENUM(...ActivityTypes),
-  downloadSpeed: Sequelize.STRING,
   batteryLevel: Sequelize.STRING,
   latitude: Sequelize.STRING,
   longitude: Sequelize.STRING,
@@ -91,20 +124,52 @@ Activity.belongsTo(Device, { through: "DeviceActivities" });
 Device.belongsToMany(Activity, { through: "DeviceActivites" });
 
 export const Group = db.define("group", {
-  iconUrl: Sequelize.STRING,
-  username: Sequelize.STRING,
+  iconUrl: {
+    type: Sequelize.STRING,
+    validate: {
+      isUrl: true,
+    },
+  },
+  username: {
+    type: Sequelize.STRING,
+    unique: true,
+    validate: {
+      len: [2, 50],
+    },
+  },
   name: Sequelize.STRING,
   description: Sequelize.TEXT,
   isDirectMessage: Sequelize.BOOLEAN,
+
   // Settings
-  showInGlobalSearch: Sequelize.BOOLEAN,
-  allowMemberInvites: Sequelize.BOOLEAN,
-  allowMemberRequests: Sequelize.BOOLEAN,
+
+  // Public - shows in gobal search, can have public chats
+  // Private - hidden from search, all chats private
+  isPublic: {
+    type: Sequelize.BOOLEAN,
+    defaultValue: false,
+  },
+
+  allowMemberInvites: {
+    type: Sequelize.BOOLEAN,
+    defaultValue: true,
+  },
+  allowMemberRequests: {
+    type: Sequelize.BOOLEAN,
+    defaultValue: false,
+  },
 });
 
 export const Chat = db.define("chat", {
   name: Sequelize.STRING,
   description: Sequelize.TEXT,
+
+  // Any remix user can send a message to a public chat, unless
+  // that group has banned them.
+  isPublic: {
+    type: Sequelize.BOOLEAN,
+    defaultValue: false,
+  },
 });
 
 export const Message = db.define("message", {});

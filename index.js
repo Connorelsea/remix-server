@@ -33,14 +33,10 @@ export function startServer() {
     typeDefs,
     resolvers,
     context: props => {
-      console.log("GETTING CONTEXT FROM ", props.req);
-      console.log("PROPS", props);
+      console.log("Apollo Server - Getting Context", props);
+
       if (props.req === undefined) {
         if (props.connection !== undefined) {
-          console.log(
-            "RETURNING SUBSCRIPTION SPECIFIC CONTEXT",
-            props.connection.context
-          );
           return props.connection.context;
         }
         return { user: undefined };
@@ -52,7 +48,7 @@ export function startServer() {
     cacheControl: true,
     // formatError,
     logFunction: info => {
-      console.log(info);
+      console.log("Apollo Server - Log Info", info);
     },
   });
 
