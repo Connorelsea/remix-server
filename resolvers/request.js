@@ -8,7 +8,7 @@ import {
   GroupInvitation,
   User,
   Group,
-  Chat
+  Chat,
 } from "../connectors";
 import { Op } from "sequelize";
 import { PubSub, withFilter } from "graphql-subscriptions";
@@ -24,18 +24,18 @@ const createFriendRequest = isAuthenticatedResolver.createResolver(
       {
         message,
         fromUserId,
-        toUserId
+        toUserId,
       },
       {
         include: [
           { model: User, as: "fromUser" },
-          { model: User, as: "toUser" }
-        ]
+          { model: User, as: "toUser" },
+        ],
       }
     );
 
     ps.publish("newFriendRequest", {
-      newFriendRequest: friendRequest
+      newFriendRequest: friendRequest,
     });
 
     return friendRequest;
@@ -58,17 +58,17 @@ const acceptFriendRequest = isAuthenticatedResolver.createResolver(
   async (root, args, context, error) => {
     const { friendRequestId } = args;
     const {
-      user: { id }
+      user: { id },
     } = context;
 
     const friendRequest = await FriendRequest.findOne({
-      where: { id: friendRequestId }
+      where: { id: friendRequestId },
     });
 
     if (friendRequest.toUserId === id) {
       const currentUser = await User.findOne({ where: { id } });
       const newFriend = await User.findOne({
-        where: { id: friendRequest.fromUserId }
+        where: { id: friendRequest.fromUserId },
       });
       currentUser.addFriend(newFriend);
       newFriend.addFriend(currentUser);
@@ -76,7 +76,7 @@ const acceptFriendRequest = isAuthenticatedResolver.createResolver(
       const newGroup = await Group.create({
         name: "friend",
         description: `A great friendship`,
-        isDirectMessage: true
+        isDirectMessage: true,
       });
 
       newGroup.addMember(currentUser);
@@ -84,12 +84,12 @@ const acceptFriendRequest = isAuthenticatedResolver.createResolver(
 
       const newChat = await Chat.create({
         name: "general",
-        description: "Conversation and chatting"
+        description: "Conversation and chatting",
       });
 
       const secondChat = await Chat.create({
         name: "music",
-        description: "Share and discuss songs, albums, artists"
+        description: "Share and discuss songs, albums, artists",
       });
 
       newGroup.addChat(newChat);
@@ -108,16 +108,16 @@ const acceptFriendRequest = isAuthenticatedResolver.createResolver(
         newFriend: {
           forUserId: currentUser.id,
           newUser: newFriend,
-          newGroup
-        }
+          newGroup,
+        },
       });
 
       ps.publish("newFriend", {
         newFriend: {
           forUserId: newFriend.id,
           newUser: currentUser,
-          newGroup
-        }
+          newGroup,
+        },
       });
 
       return "true";
@@ -133,23 +133,23 @@ const acceptFriendRequest = isAuthenticatedResolver.createResolver(
  */
 
 const IncorrectUserError = createError("IncorrectUser", {
-  message: "user and current context user dont match"
+  message: "user and current context user dont match",
 });
 
 const UserDoesntExistError = createError("UserDoesntExist", {
-  message: "A user with this ID doesn't exist"
+  message: "A user with this ID doesn't exist",
 });
 
 const GroupDoesntExistError = createError("GroupDoesntExist", {
-  message: "A group with this ID doesn't exist"
+  message: "A group with this ID doesn't exist",
 });
 
 const NotGroupMemberError = createError("NotGroupMember", {
-  message: "You are not a member of this group"
+  message: "You are not a member of this group",
 });
 
 const NotAdminError = createError("NotAdmin", {
-  message: "Only admins of this group can invite new members"
+  message: "Only admins of this group can invite new members",
 });
 
 const createGroupInvitation = isAuthenticatedResolver.createResolver(
@@ -193,16 +193,18 @@ const createGroupInvitation = isAuthenticatedResolver.createResolver(
     // Create invitation
 
     const invitation = await GroupInvitation.create({
-      message
+      message,
     });
 
     const relations = await Promise.all([
       invitation.setFromUser(fromUser),
       invitation.setToUser(toUser),
-      invitation.setForGroup(forGroup)
+      invitation.setForGroup(forGroup),
     ]);
 
-    // TODO: Send subscription event for toUser
+    ps.publish("newGroupInvitation", {
+      newGroupInvitation: invitation,
+    });
 
     return invitation;
   }
@@ -214,7 +216,7 @@ const acceptGroupInvitation = isAuthenticatedResolver.createResolver(
     const { user } = context;
 
     const invite = await GroupInvitation.find({
-      where: { id: invitationId }
+      where: { id: invitationId },
     });
 
     const toUser = await invite.getToUser();
@@ -239,18 +241,18 @@ const getForGroup = baseResolver.createResolver(
 export default {
   FriendRequest: {
     toUser: getToUser,
-    fromUser: getFromUser
+    fromUser: getFromUser,
   },
   GroupInvitation: {
     toUser: getToUser,
     fromUser: getFromUser,
-    forGroup: getForGroup
+    forGroup: getForGroup,
   },
   Mutation: {
     createFriendRequest,
     acceptFriendRequest,
     createGroupInvitation,
-    acceptGroupInvitation
+    acceptGroupInvitation,
   },
   Query: {},
   Subscription: {
@@ -259,14 +261,21 @@ export default {
         () => ps.asyncIterator("newFriendRequest"),
         (payload, variables) =>
           payload.newFriendRequest.toUserId == variables.toUserId
-      )
+      ),
+    },
+    newGroupInvitation: {
+      subscribe: withFilter(
+        () => ps.asyncIterator("newGroupInvitation"),
+        (payload, variables) =>
+          payload.newGroupInvitation.toUserId == variables.toUserId
+      ),
     },
     newFriend: {
       subscribe: withFilter(
         () => ps.asyncIterator("newFriend"),
         (payload, variables) =>
           payload.newFriend.forUserId == variables.forUserId
-      )
-    }
-  }
+      ),
+    },
+  },
 };

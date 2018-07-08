@@ -123,8 +123,15 @@ export const typeDefs = gql`
     groups: [Group]
   }
 
+  type File {
+    filename: String!
+    mimetype: String!
+    encoding: String!
+  }
+
   type Subscription {
     newFriendRequest(toUserId: ID): FriendRequest
+    newGroupInvitation(toUserId: ID): GroupInvitation
     newFriend(forUserId: ID!): NewFriendResponse
     newMessage(forUserId: ID!): Message
     newGroup(forUserId: ID!): Group
@@ -153,6 +160,10 @@ export const typeDefs = gql`
   }
 
   type Mutation {
+    # Storage
+
+    createStorage: String!
+
     # User Device Management
 
     loginWithNewDevice(
@@ -265,6 +276,14 @@ export const typeDefs = gql`
     # Updating read position
 
     updateReadPosition(forMessageId: ID!): ReadPosition
+
+    # Updating user profile information
+
+    updateUser(
+      newName: String
+      newUsername: String
+      newDescription: String
+    ): User
   }
 
 `;

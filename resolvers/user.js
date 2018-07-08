@@ -23,7 +23,7 @@ import { resolver } from "graphql-sequelize";
 
 import { genAccessToken, genRefreshToken } from "../utils/token";
 
-const getHash = password => bcrypt.hashSync(password, 10);
+export const getHash = password => bcrypt.hashSync(password, 10);
 
 const createUser = baseResolver.createResolver(
   async (root, args, context, error) => {

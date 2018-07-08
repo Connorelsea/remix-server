@@ -86,18 +86,24 @@ const users = [
     name: "Sarah",
     username: "sarah",
     email: "sarah@sarah.com",
+    iconUrl:
+      "https://is1-ssl.mzstatic.com/image/thumb/Purple128/v4/50/98/b6/5098b62e-b26d-6d0e-bda4-26a85c42fe1f/AppIcon-1x_U007emarketing-0-0-GLES2_U002c0-512MB-sRGB-0-0-0-85-220-0-0-0-3.png/246x0w.jpg",
     ...userFiller,
   },
   {
     name: "Saran Wrap Company",
     username: "saranwrap",
     email: "saranwrap@gmail.com",
+    iconUrl:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Liliumbulbiferumflowertop.jpg/220px-Liliumbulbiferumflowertop.jpg",
     ...userFiller,
   },
   {
     name: "sand",
     username: "sand",
     email: "sand@sand.com",
+    iconUrl:
+      "https://www.publicdomainpictures.net/pictures/10000/velka/1-1254836694ahTH.jpg",
     ...userFiller,
   },
 ];
